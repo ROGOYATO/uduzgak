@@ -57,4 +57,16 @@ describe('Dashboard view-model composition', () => {
     expect(dashboard.goals).not.toBe(reporting.goals)
     expect(dashboard.goals[0]).not.toBe(reporting.goals[0])
   })
+  it('counts overdue and due-today tasks together as immediate attention', () => {
+    const withDueToday = {
+      ...reporting,
+      openTaskDueDates: { ...reporting.openTaskDueDates, overdue: 2, dueToday: 1, totalOpen: 4 },
+    }
+    expect(deriveDashboardViewModel(withDueToday).attention).toMatchObject({
+      overdue: 2,
+      dueToday: 1,
+      attentionNow: 3,
+    })
+  })
+
 })

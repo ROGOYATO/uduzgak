@@ -3351,3 +3351,11 @@ This analysis is **not a calendar-aware or resource-aware schedule**: it treats 
   unchanged until a separate coordinated infrastructure rename.
 - Previous name-collision research remains historical; `uduzgak` clearance is
   unverified.
+
+## Test-suite maintenance after TDD 410 — scoped consolidation
+
+A focused cleanup replaces five duplicate BrowserApp layout-persistence fixtures with one sequential layout-persistence contract, merges five single-layout domain preference tests into one table-driven contract, and merges five critical-path files into one file **without changing their five assertions/cases**. Two view-preference storage files are replaced by one compatibility contract. Four dashboard helper tests repeat the aggregate `dashboard-view-model.test.ts` input/output checks and are removed; the aggregate model, dashboard browser test, and relevant reporting tests stay.
+
+Do not use number of test files as a TDD quota. Write a failing test for meaningful behavior and keep tests that cover unique boundaries, invalid inputs, persistence, or regressions. Trivial renames and obvious presentation changes do not require new test files. At **the end of each TDD**, run the new test and short relevant existing regression smoke, zero-warning lint, and the appropriate type/build check. Do not run the full Vitest suite automatically per TDD or per bundle; run it only when explicitly requested or separately agreed. Show live test output; never declare a failing test passed or silently change assertions to pass.
+
+Confirmed pre-cleanup live checkpoint: `ef30ab2dfc5e215496f416597c31046fd8f0f5b4` on main. The cleanup remains prepared until its Windows runner validates the actual live checkout, focused tests, build, and non-force push.

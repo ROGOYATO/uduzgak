@@ -1503,3 +1503,7 @@ live checkout before commit. A runner-level timeout allowance for
 slow Windows UI tests may change execution time limits but not
 test assertions, skips, or expected results. Any failure must stop
 commit/push; a retry is diagnostic, not an acceptance condition.
+
+## Current test-selection policy (after TDD 410)
+
+Use meaningful test-first coverage for domain rules, persistence, regressions, and risky UI flows, not one new test file per trivial edit. At the end of **each** TDD cycle, run accumulated focused tests, a small smoke set selected for the touched subsystem, lint with zero warnings, and TypeScript/build when practical; stop immediately on failure. Final release checks should cover changed functionality with focused suites, lint, TypeScript, build, and Git integrity checks. **Do not automatically run the entire Vitest suite at each TDD or at batch completion.** Request approval before changing tests to work around failures. Remove proven duplicate coverage only as a deliberate test-suite maintenance change, preserving critical assertions and recording the replacement coverage.

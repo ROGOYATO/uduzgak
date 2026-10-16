@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   createDefaultViewPreferences,
+  getTaskViewMode,
   type ViewPreferences,
 } from '../domain/view-preferences'
 import type { KeyValueStore } from './workspace-storage'
@@ -112,4 +113,33 @@ it('round-trips the manual task sort preference', () => {
   saveViewPreferences(storage, preferences)
 
   expect(loadViewPreferences(storage).sort).toBe('manual')
+})
+
+
+describe('view-mode persistence compatibility', () => {
+  it('round-trips Board and Calendar, retains legacy List, and rejects invalid modes', () => {
+    for (const mode of ['board', 'calendar'] as const) {
+      const storage = new MemoryStore()
+      const preferences = { ...createDefaultViewPreferences(), projectView: 'project-2', viewMode: mode }
+      saveViewPreferences(storage, preferences)
+      expect(loadViewPreferences(storage)).toEqual(preferences)
+    }
+
+    const legacyStorage = new MemoryStore()
+    legacyStorage.setItem('workspace-app.view-preferences', JSON.stringify({
+      version: 1,
+      preferences: { ...createDefaultViewPreferences(), projectView: 'project-legacy', sort: 'title' },
+    }))
+    const legacy = loadViewPreferences(legacyStorage)
+    expect(legacy.projectView).toBe('project-legacy')
+    expect(legacy.sort).toBe('title')
+    expect(getTaskViewMode(legacy)).toBe('list')
+
+    const invalidStorage = new MemoryStore()
+    invalidStorage.setItem('workspace-app.view-preferences', JSON.stringify({
+      version: 1,
+      preferences: { ...createDefaultViewPreferences(), viewMode: 'matrix' },
+    }))
+    expect(loadViewPreferences(invalidStorage)).toEqual(createDefaultViewPreferences())
+  })
 })
