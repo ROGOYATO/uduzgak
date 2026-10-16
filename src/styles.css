@@ -303,3 +303,9 @@ textarea {
     grid-row: auto;
   }
 }
+
+/* Critical-path markings remain readable without relying on color alone. */
+.task-gantt-summary > li.task-gantt-critical {
+  border-left: 4px solid #35628d;
+  background: #f0f5fb;
+}

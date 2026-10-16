@@ -733,3 +733,7 @@ uduzgak supports bulk Tag assignment/removal and bulk Person assignment/removal 
 ### TDD 386-390 bulk Custom Field values
 
 uduzgak supports bulk set/clear for Text, Number, Checkbox, Date, and Select Custom Fields on the current visible Task selection. Bulk writes reuse the same domain normalization as single-Task edits, reject missing fields, invalid Select options, and type-incompatible values before Task mutation, and keep Formula fields read-only. Each bulk value change uses one persisted Workspace dispatch.
+
+### TDD 411 — Gantt critical-path display
+
+Gantt now displays the logical dependency-path duration for each Project and marks scheduled Tasks as critical or non-critical with the computed slack in days. This is a derived, read-only projection over currently visible Tasks and their `blocks` relationships; unscheduled Tasks receive no critical-path label. The calculation represents dependency durations, **not** the actual elapsed calendar schedule, working days, resource contention, or holiday delays. List, Board, Table, and other modes do not calculate or display this summary.

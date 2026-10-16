@@ -586,6 +586,7 @@ persisted. Storage version remains 1.
 - [x] Milestone flags and original-schedule baselines (401-405)
 - [x] Pure scheduled-Task dependency graph and critical-path duration/slack calculation (406-410)
 - [ ] Resource-aware / holiday-aware work calendar
-- [ ] Critical-path UI styling, explanatory breakdown, and selection controls
+- [x] Logical critical-path duration and per-Task critical/slack labels in Gantt (TDD 411)
+- [ ] Critical-path selection controls and resource/calendar-aware planning
 
 Critical-path analysis is derived and not persisted. A milestone is a zero-day event; ordinary Task spans use inclusive UTC calendar-day duration. Unscheduled Task endpoints are not auto-filled or inferred. The logical network does not model idle gaps in actual dates, resources, or labor calendars.

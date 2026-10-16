@@ -3359,3 +3359,13 @@ A focused cleanup replaces five duplicate BrowserApp layout-persistence fixtures
 Do not use number of test files as a TDD quota. Write a failing test for meaningful behavior and keep tests that cover unique boundaries, invalid inputs, persistence, or regressions. Trivial renames and obvious presentation changes do not require new test files. At **the end of each TDD**, run the new test and short relevant existing regression smoke, zero-warning lint, and the appropriate type/build check. Do not run the full Vitest suite automatically per TDD or per bundle; run it only when explicitly requested or separately agreed. Show live test output; never declare a failing test passed or silently change assertions to pass.
 
 Confirmed pre-cleanup live checkpoint: `ef30ab2dfc5e215496f416597c31046fd8f0f5b4` on main. The cleanup remains prepared until its Windows runner validates the actual live checkout, focused tests, build, and non-force push.
+
+## TDD 411 — Gantt critical-path presentation
+
+Starting user-confirmed live checkpoint: `f583d3089c68c0aef9ebcfa37113ef72f0f14fcc` (test-suite consolidation, clean `origin/main`).
+
+RED: extend the existing `src/App.test.tsx` contract for an accessible project Gantt summary, critical Task markers, noncritical slack, unscheduled omission, and absence outside Gantt; it should fail because the UI does not yet show critical-path analysis.
+
+GREEN: reuse the previously verified pure `createTaskGanttCriticalPath` calculation. Show the logical duration and per-Task label on visible Project Gantt entries, with simple highlighted critical rows. Avoid new persistence, state, dependencies, and redundant test files.
+
+Verification boundary: one new behavior test, adjacent App and Gantt smoke tests, zero-warning lint, TypeScript/build, diff and hash audits, scratch replay before live transfer, non-force push. **Full Vitest intentionally omitted.** This record describes the intended verification gate; the Windows runner output and resulting commit are authoritative for whether the change became live.

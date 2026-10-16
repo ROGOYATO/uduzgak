@@ -6,6 +6,7 @@ import {
   createTaskGanttDependencyEdges,
   createTaskGanttItems,
   createTaskGanttBaselineComparison,
+  createTaskGanttCriticalPath,
 } from './domain/task-gantt'
 import { createTaskTableRows } from './domain/task-table'
 import { createTaskTimelineItems } from './domain/task-timeline'
@@ -2489,6 +2490,12 @@ export function App({
             tasks,
             relationships,
           )
+          const ganttCriticalPath = taskViewMode === 'gantt'
+            ? createTaskGanttCriticalPath(tasks, relationships)
+            : null
+          const ganttCriticalRows = new Map(
+            (ganttCriticalPath?.rows ?? []).map((row) => [row.taskId, row] as const),
+          )
           const taskEntries =
             taskViewMode === 'board'
               ? boardColumns.flatMap((column) => [
@@ -2912,12 +2919,20 @@ export function App({
                 <p>{projectTasks.length === 0 ? 'No tasks yet.' : 'No matching tasks.'}</p>
               ) : (
                 <>
+                  {taskViewMode === 'gantt' && ganttCriticalPath ? (
+                    <p aria-label={`Gantt critical path for ${project.name}`}>
+                      {ganttCriticalPath.rows.length === 0
+                        ? 'No scheduled tasks for critical-path analysis'
+                        : `Logical critical path: ${ganttCriticalPath.durationDays} days (visible scheduled tasks; blocks dependencies only)`}
+                    </p>
+                  ) : null}
                   {taskViewMode === 'gantt' ? (
                     <ol
                       className="task-gantt-summary"
                       aria-label={`Task Gantt for ${project.name}`}
                     >
                       {ganttItems.map((item) => {
+                        const criticalRow = ganttCriticalRows.get(item.task.id)
                         const draft = ganttScheduleDrafts[item.task.id] ?? {
                           startDate: item.startDate ?? '',
                           dueDate: item.dueDate ?? '',
@@ -2926,6 +2941,7 @@ export function App({
                         return (
                           <li
                             key={item.task.id}
+                            className={criticalRow?.isCritical ? 'task-gantt-critical' : undefined}
                             draggable={onChangeTaskGanttSchedule !== undefined}
                             onDragStart={(event) =>
                               event.dataTransfer.setData('text/plain', item.task.id)
@@ -2937,6 +2953,13 @@ export function App({
                             }
                           >
                             <span>{item.task.title}</span>
+                            {criticalRow ? (
+                              <span aria-label={`Critical path status for ${item.task.title}`}>
+                                {criticalRow.isCritical
+                                  ? 'Critical (0 days slack)'
+                                  : `Not critical (${criticalRow.slackDays} days slack)`}
+                              </span>
+                            ) : null}
                             {item.task.isMilestone ? <span>Milestone</span> : null}
                             {item.task.ganttBaseline ? (
                               <span>Baseline {createTaskGanttBaselineComparison(item.task)}</span>
