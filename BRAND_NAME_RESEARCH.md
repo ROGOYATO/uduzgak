@@ -1,4 +1,4 @@
-# Yönlek naming research
+# uduzgak naming research (previous working name: Yönlek)
 
 This file is the repository's canonical naming and brand-research record. It
 keeps the active naming decision, technical slug, compatibility constraints, and
@@ -9,13 +9,15 @@ legal advice.
 
 ## Current naming state
 
-**Yönlek** is the active working product name.
+**uduzgak** is the active working product name. The collision screening below
+was performed for the previous name **Yönlek** and must not be interpreted as
+trademark or availability research for uduzgak.
 
-The technical slug is now `yonlek`. The current implementation uses it for:
+The npm package and product-facing slug use `uduzgak`. The GitHub repository
+name and local working folder remain `yonlek` pending a separately verified
+rename. The current implementation uses the new name for:
 
 - the npm package name;
-- the GitHub repository name;
-- the local repository folder;
 - product-facing application metadata and headings.
 
 The two browser persistence keys remain:
@@ -29,10 +31,10 @@ Those identifiers predate the Yönlek name. They are kept so existing browser
 data remains discoverable. A future rename of the keys needs a tested data
 migration.
 
-Using Yönlek in code and repository names does not mean the name has passed
-formal trademark clearance.
+Using uduzgak in product code does not mean the new name has passed formal
+trademark clearance. No collision search for the new name is recorded here.
 
-## Why Yönlek was selected as the working name
+## Historical research: why Yönlek was selected previously
 
 The preliminary search favored Yönlek because:
 
@@ -117,8 +119,9 @@ The exact filing strategy depends on the final product and launch markets.
 
 Until formal clearance is complete:
 
-- use **Yönlek** as the working product name;
-- use `yonlek` for the repository and package slug;
+- use **uduzgak** as the working product name and npm package slug;
+- retain `yonlek` for the existing GitHub remote and checkout until their
+  separately coordinated rename;
 - do not describe the name as registered, cleared, or protected unless that is
   formally established;
 - do not rename established browser storage keys without a migration;

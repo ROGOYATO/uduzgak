@@ -14,9 +14,10 @@ The current user-confirmed behavior baseline is:
 - post-commit tree: clean
 - push: `origin/main` updated successfully
 
-The repository, npm package, and product slug use `yonlek`. The browser storage
-keys intentionally keep the historical `workspace-app.*` prefix until a tested
-migration is added.
+The npm package and product-facing identity use `uduzgak`. The GitHub repository
+and local working folder retain the legacy `yonlek` slug for now. Browser storage
+keys intentionally keep the established `workspace-app.*` prefix; renaming those
+keys requires a tested migration.
 
 ## Checkpoint documentation
 
@@ -478,8 +479,8 @@ Use `CLICKUP_REFERENCE.md` as the maintained reference for this rule.
 
 ## Product identity and persistence identifiers
 
-The visible working product name is **Yönlek**. The npm package, GitHub
-repository, and local repository folder use `yonlek`.
+The visible working product name is **uduzgak**. The npm package uses
+`uduzgak`; the GitHub repository and local folder still use `yonlek`.
 
 The local repository was renamed from
 `C:\Users\yavuz\git\workspace-app` to `C:\Users\yavuz\git\yonlek` after
@@ -1477,3 +1478,28 @@ Bulk Tag and Person operations target only the explicitly selected Task IDs and 
 ## Bulk Custom Field invariant - TDD 386-390
 
 Bulk Custom Field changes target only explicitly selected Task IDs and use one Workspace dispatch per operation. Reuse `normalizeCustomFieldValueForDefinition`; do not maintain a second bulk validation path. Text, Number, Checkbox, Date, and Select values must obey the same normalization and option/type checks as single-Task edits. Formula values remain derived/read-only. Custom Field type migration continues to clear incompatible Task values before any later bulk write is accepted.
+
+## Gantt critical-path foundation invariant - TDD 406-410
+
+Critical-path functions in `src/domain/task-gantt.ts` must be pure projections over an explicitly supplied Task/relationship subset. Only Tasks with both dates enter the graph; only in-scope `blocks` edges affect ordering. Reject dependency cycles rather than looping. Task duration uses inclusive UTC calendar dates, except an explicit milestone which has logical duration zero. Forward pass computes finish-to-start offsets; backward pass derives project-horizon slack and criticality. Keep result row order aligned with input Task order, without mutating Tasks, relationships, captured baselines, storage documents, or actual Task start/due dates. This is dependency-duration analysis, **not** a calendar-aware or resource-constrained real schedule. Browser UI integration belongs to a later TDD batch.
+
+## Test selection and delivery gates
+
+For domain behavior changes, add tests that exercise invariants, edge cases, and
+observable behavior before implementing the change. Do not create one test file
+per trivial statement, label, or mechanical rename; extend the closest existing
+test when a contract changes. Existing test assertions must not be deleted,
+weakened, or rewritten merely to turn a failure green.
+
+After EACH TDD GREEN, run the current accumulated new tests, a small relevant
+existing regression smoke, zero-warning lint, and a TypeScript/production
+build before starting the next TDD. Do not defer these gates until the
+end of a five-cycle batch. A simple text or metadata change may reuse
+existing tests instead of introducing a new test file.
+
+Before live mutation, run the full suite once and require every test to
+pass. Verify focused tests, lint, build, and final smoke again on the
+live checkout before commit. A runner-level timeout allowance for
+slow Windows UI tests may change execution time limits but not
+test assertions, skips, or expected results. Any failure must stop
+commit/push; a retry is diagnostic, not an acceptance condition.

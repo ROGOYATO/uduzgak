@@ -3311,3 +3311,43 @@ Storage remains version 1. Bulk Tag/Person operations extend the existing single
 - 390: visible-selection browser controls with a type-aware editable Custom Field value editor.
 
 Storage remains version 1. Bulk Custom Field writes extend the existing `customFieldValues` map and normalization boundary; they do not introduce a second value representation.
+
+## TDD 391-395 - Gantt drag scheduling (confirmed live)
+
+- Added drag-based Task schedule movement, with original duration preserved.
+- Scheduling changes use the existing Task date setter and persisted command boundary.
+- Gantt drag and keyboard scheduling tests guard regressions.
+
+## TDD 396-400 - Gantt dependency lines (confirmed live)
+
+- Render directional `blocks` edges between visible Gantt Tasks.
+- Keep unrelated relationship types outside dependency rendering.
+- Test display filtering, direction, and regression behavior.
+
+## TDD 401-405 - Gantt milestones and baselines (confirmed live)
+
+- Explicit milestone flag, persisted command and storage validation.
+- Capture fixed original Task schedule baseline and compare after rescheduling.
+- Render milestone and baseline state through the existing Gantt UI.
+
+## TDD 406-410 - Pure Gantt critical-path foundations
+
+- **406:** calendar-day duration for scheduled Tasks, and zero-day milestones; no inferred dates.
+- **407:** stable scheduled-Task `blocks` graph projection with irrelevant edges removed.
+- **408:** deterministic dependency order with cycle rejection.
+- **409:** earliest logical finish-to-start offsets computed from task durations.
+- **410:** latest offsets, slack, critical flags, and input-order result rows.
+
+This analysis is **not a calendar-aware or resource-aware schedule**: it treats the selected scheduled Tasks as one dependency graph and computes logical day offsets, not actual date movement or UI highlights. No storage schema or command action changes. Critical-path UI and work-calendar rules remain separate future work.
+
+## Product identity update prepared alongside TDD 406-410
+
+- Working product name and npm identity: `uduzgak`.
+- Application heading, HTML title, package and lockfile names change together.
+- Existing product-identity assertions are updated to the newly requested
+  identity while retaining browser persistence compatibility checks.
+- `workspace-app.*` persistence keys remain unchanged; no data migration occurs.
+- GitHub repo `ROGOYATO/yonlek` and local `git\yonlek` checkout remain
+  unchanged until a separate coordinated infrastructure rename.
+- Previous name-collision research remains historical; `uduzgak` clearance is
+  unverified.

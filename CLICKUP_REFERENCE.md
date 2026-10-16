@@ -1,7 +1,7 @@
 # ClickUp feature and architecture reference
 
 Status: research reference only. This file is not a clone specification and does
-not define Yönlek's visual design.
+not define uduzgak's visual design.
 
 ## Independence rule
 
@@ -18,7 +18,7 @@ Do not copy:
   recognizable visual expression;
 - undocumented implementation details obtained by reverse engineering.
 
-Yönlek must keep its own code, hierarchy, terminology, visual identity, and
+uduzgak must keep its own code, hierarchy, terminology, visual identity, and
 interaction choices.
 
 ## Publicly documented ClickUp concepts
@@ -41,7 +41,7 @@ The useful product concepts are broader than the exact names in that hierarchy.
 Higher-level locations can influence lower-level work. Public documentation
 describes location-aware settings and Custom Fields.
 
-For Yönlek, the useful idea is scoped ownership and inheritance. The exact
+For uduzgak, the useful idea is scoped ownership and inheritance. The exact
 ClickUp hierarchy is not copied.
 
 ### Multiple views over shared work data
@@ -69,15 +69,15 @@ Public ClickUp documentation describes Task capabilities such as:
 - recurring work;
 - time estimates and time tracking.
 
-Yönlek uses this only as capability coverage. Its current Task model and
-terminology are defined by Yönlek's own domain code.
+uduzgak uses this only as capability coverage. Its current Task model and
+terminology are defined by uduzgak's own domain code.
 
 ### Search, filter, and sort
 
 ClickUp treats search, filtering, sorting, and view configuration as core
 product behavior.
 
-Yönlek has already adopted the generic idea of query controls over shared Task
+uduzgak has already adopted the generic idea of query controls over shared Task
 data. The implementation is independent.
 
 ### Automation
@@ -90,15 +90,15 @@ Trigger
 → Actions
 ```
 
-Yönlek has not implemented automation yet. If it does, the event and command
-model should be derived from Yönlek's own domain boundaries.
+uduzgak has not implemented automation yet. If it does, the event and command
+model should be derived from uduzgak's own domain boundaries.
 
 ### Permissions and collaboration
 
 ClickUp documents workspace roles, privacy, sharing, inherited permissions, and
 team membership.
 
-Yönlek does not have authenticated users or permissions yet. The current local
+uduzgak does not have authenticated users or permissions yet. The current local
 Person model is only a Task-assignment identity and must not be treated as an
 account or authorization model.
 
@@ -106,7 +106,7 @@ account or authorization model.
 
 ClickUp's developer documentation includes API authentication and webhooks.
 
-Yönlek does not have a public API or webhook model yet. Those belong to the
+uduzgak does not have a public API or webhook model yet. Those belong to the
 later backend phase.
 
 ## Publicly stated ClickUp technical direction
@@ -115,11 +115,11 @@ ClickUp's engineering material has described ClickUp 3.0 as involving database
 changes and a move toward service-based architecture for scale and reliability.
 
 That statement is high-level product-engineering context. It is not detailed
-enough to reconstruct ClickUp internals, and Yönlek should not attempt to do so.
+enough to reconstruct ClickUp internals, and uduzgak should not attempt to do so.
 
-## Yönlek's independent model
+## uduzgak's independent model
 
-Yönlek currently uses:
+uduzgak currently uses:
 
 ```text
 Workspace
@@ -132,7 +132,7 @@ Workspace
 
 Key differences and ownership rules:
 
-- `Area` is an optional Yönlek grouping above Projects.
+- `Area` is an optional uduzgak grouping above Projects.
 - `Project` remains the primary work container.
 - `List` is an optional Task container inside one Project.
 - a Subtask is a Task with `parentTaskId`;
@@ -144,7 +144,7 @@ Key differences and ownership rules:
 This model is already implemented through local persistence and validation. It
 is not a placeholder copy of ClickUp's hierarchy.
 
-## Current Yönlek coverage
+## Current uduzgak coverage
 
 The following capability areas are already implemented:
 
@@ -165,7 +165,7 @@ The following capability areas are already implemented:
 - browser-local persistence and recovery;
 - separately persisted view preferences.
 
-Task duplication is a Yönlek-specific lifecycle behavior in the current roadmap.
+Task duplication is a uduzgak-specific lifecycle behavior in the current roadmap.
 It copies one Task's owned data but not its child Tasks or workspace-level
 relationship graph.
 
@@ -231,7 +231,7 @@ Until the local domain model and core workflows settle:
 - do not add server architecture only to imitate a mature SaaS product;
 - do not build dashboards before their underlying data queries exist;
 - do not attach permissions to local People;
-- do not build automation before Yönlek has stable events and commands.
+- do not build automation before uduzgak has stable events and commands.
 
 ## Sources reviewed
 

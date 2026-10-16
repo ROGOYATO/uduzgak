@@ -1,6 +1,6 @@
-# Yönlek
+# uduzgak
 
-Yönlek is a local-first project and task manager built with React, TypeScript,
+uduzgak is a local-first project and task manager built with React, TypeScript,
 Vite, and browser `localStorage`.
 
 The project is still in its feature-first phase. Core data rules and workflows
@@ -27,7 +27,7 @@ tracking.
 
 ## Current product model
 
-Yönlek currently uses this hierarchy:
+uduzgak currently uses this hierarchy:
 
 ```text
 Workspace
@@ -41,7 +41,7 @@ Workspace
 A Checklist item is Task-local data, not another hierarchy level.
 
 The model is intentionally independent. `Area`, `Project`, `List`, and `Task`
-are Yönlek domain concepts with their own validation and persistence rules.
+are uduzgak domain concepts with their own validation and persistence rules.
 
 ### Areas
 
@@ -387,7 +387,7 @@ timestamps, hierarchy constraints, relationship semantics, and dependency
 cycles before exposing saved data to the application.
 
 The `workspace-app` prefix is intentionally retained. It is an established data
-identifier from before the product was renamed to Yönlek. Renaming that key
+identifier from before the product was renamed to uduzgak. Renaming that key
 without a migration would make existing browser data appear to disappear.
 
 ### View preferences
@@ -410,7 +410,7 @@ Field filters/sorts, grouping, Task layout, saved filter sets, and saved views.
 Preferences are deliberately less strict than workspace data. Invalid,
 unsupported, or unreadable preferences fall back to defaults instead of
 blocking application startup. If saved Project focus points to a deleted
-Project, Yönlek repairs it to `All projects`.
+Project, uduzgak repairs it to `All projects`.
 
 Workspace data and view preferences stay separate because a Task is durable
 domain data while a filter selection is disposable UI state.
@@ -452,7 +452,7 @@ remains current.
 
 ## Backup export
 
-Yönlek can export and import the current workspace and view preferences as a
+uduzgak can export and import the current workspace and view preferences as a
 versioned JSON backup. The backup contains structured application state only;
 it does not include attachment file bytes. Import validates the complete backup
 before replacing persisted state and keeps the current state on invalid input.
@@ -569,7 +569,7 @@ See `CONTRIBUTING.md` for the full workflow.
 
 ## Current scope limits
 
-Yönlek is still browser-local.
+uduzgak is still browser-local.
 
 Not implemented yet:
 
@@ -593,7 +593,7 @@ and custom-domain automation are not part of the repository yet.
 
 ## Product independence
 
-Yönlek may study established work-management products for generic capability
+uduzgak may study established work-management products for generic capability
 coverage. That research does not authorize copying source code, assets, icons,
 screenshots, marketing text, branded feature names, or distinctive UI
 composition.
@@ -602,8 +602,8 @@ composition.
 
 ## Naming status
 
-`Yönlek` is the active working product name, npm package name, GitHub repository
-name, and local repository folder.
+`uduzgak` is the active working product name and npm package slug. The GitHub
+repository and local working folder retain their existing `yonlek` names.
 
 That implementation decision is not trademark clearance.
 
@@ -716,20 +716,20 @@ not persisted separately.
 
 ### TDD 366-370 bulk lifecycle
 
-Yönlek supports one-dispatch bulk restore for archived Task roots and explicitly confirmed bulk deletion for selected active Tasks. Both operations keep subtree semantics and append deterministic Task Activity entries.
+uduzgak supports one-dispatch bulk restore for archived Task roots and explicitly confirmed bulk deletion for selected active Tasks. Both operations keep subtree semantics and append deterministic Task Activity entries.
 
 ### TDD 371-375 bulk movement
 
-YÃ¶nlek supports atomic bulk Project movement for selected Task subtrees and bulk List assignment/clearing. Project moves clear incompatible List references, while List assignment validates the entire selection before accepting any change.
+uduzgak supports atomic bulk Project movement for selected Task subtrees and bulk List assignment/clearing. Project moves clear incompatible List references, while List assignment validates the entire selection before accepting any change.
 
 ### TDD 376-380 bulk dates
 
-YÃ¶nlek supports atomic bulk start-date and due-date changes for selected active Tasks. The reducer validates every selected Task with the existing single-Task schedule rules before accepting the new date, so an invalid range rejects the whole operation. Clearing a due date also clears recurrence exactly as the single-Task command does. Bulk date commands use one persisted dispatch and ordered Task Activity.
+uduzgak supports atomic bulk start-date and due-date changes for selected active Tasks. The reducer validates every selected Task with the existing single-Task schedule rules before accepting the new date, so an invalid range rejects the whole operation. Clearing a due date also clears recurrence exactly as the single-Task command does. Bulk date commands use one persisted dispatch and ordered Task Activity.
 
 ### TDD 381-385 bulk Tags and People
 
-YÃ¶nlek supports bulk Tag assignment/removal and bulk Person assignment/removal for the current visible Task selection. The reducer deduplicates repeated Task IDs, rejects assignment to missing Tag/Person references, and keeps removal idempotent after a reference has already been deleted. Each bulk operation uses one persisted Workspace dispatch.
+uduzgak supports bulk Tag assignment/removal and bulk Person assignment/removal for the current visible Task selection. The reducer deduplicates repeated Task IDs, rejects assignment to missing Tag/Person references, and keeps removal idempotent after a reference has already been deleted. Each bulk operation uses one persisted Workspace dispatch.
 
 ### TDD 386-390 bulk Custom Field values
 
-YÃ¶nlek supports bulk set/clear for Text, Number, Checkbox, Date, and Select Custom Fields on the current visible Task selection. Bulk writes reuse the same domain normalization as single-Task edits, reject missing fields, invalid Select options, and type-incompatible values before Task mutation, and keep Formula fields read-only. Each bulk value change uses one persisted Workspace dispatch.
+uduzgak supports bulk set/clear for Text, Number, Checkbox, Date, and Select Custom Fields on the current visible Task selection. Bulk writes reuse the same domain normalization as single-Task edits, reject missing fields, invalid Select options, and type-incompatible values before Task mutation, and keep Formula fields read-only. Each bulk value change uses one persisted Workspace dispatch.

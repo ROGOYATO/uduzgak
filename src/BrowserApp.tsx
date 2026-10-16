@@ -118,7 +118,7 @@ export function BrowserApp({
   ) {
     return (
       <main>
-        <h1>Yönlek</h1>
+        <h1>uduzgak</h1>
         <p role="alert">{application.error}</p>
         <button
           type="button"

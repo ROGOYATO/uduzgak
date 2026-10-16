@@ -1,7 +1,7 @@
 # Third-party notices
 
-This file summarizes the direct npm dependencies declared by Yönlek. It is not
-a license for Yönlek's own source code and it is not a substitute for a release
+This file summarizes the direct npm dependencies declared by uduzgak. It is not
+a license for uduzgak's own source code and it is not a substitute for a release
 license audit.
 
 Exact installed versions are pinned by the committed `package-lock.json`.
@@ -41,7 +41,7 @@ Before a public release:
 3. preserve attribution or notice text required by any dependency;
 4. review any new fonts, icons, images, or other assets separately from npm
    packages;
-5. choose and publish an explicit license for Yönlek's own source code.
+5. choose and publish an explicit license for uduzgak's own source code.
 
 TDD 145-147 added no new npm dependency. The Task-duplication feature uses the
 existing domain, application, React, and test stack.

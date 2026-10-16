@@ -14,12 +14,12 @@ Confirmed starting checkpoint for TDD 261-265:
 
 ## Product identity
 
-- [x] Product-facing Yönlek name
-- [x] npm package name `yonlek`
-- [x] GitHub repository named `yonlek`
-- [x] Local repository folder renamed to `yonlek`
+- [x] Product-facing uduzgak name
+- [x] npm package name `uduzgak`
+- [ ] GitHub repository rename from `yonlek` to `uduzgak` (separate migration)
+- [ ] Local folder rename from `yonlek` to `uduzgak` (separate migration)
 - [x] Existing `workspace-app.*` storage keys preserved for data compatibility
-- [ ] Formal Yönlek trademark clearance
+- [ ] Formal uduzgak trademark clearance
 
 The old storage-key prefix is not a branding mistake. It is a compatibility
 identifier. Changing it requires a tested migration that can find and move
@@ -419,7 +419,7 @@ Feature behavior currently takes priority over a final design system.
 - [x] Independent source code
 - [x] No ClickUp source code
 - [x] No ClickUp proprietary assets, screenshots, or icons
-- [x] Yönlek product identity used in the application
+- [x] uduzgak product identity used in the application
 - [ ] Maintain original terminology where a generic alternative is practical
 - [ ] Maintain independent visual composition during the design phase
 - [ ] Review third-party asset and library licenses before final UI work
@@ -428,14 +428,14 @@ See `CLICKUP_REFERENCE.md` for the competitor-research boundary.
 
 ## Naming
 
-Working product name: **Yönlek**
+Working product name: **uduzgak**
 
 Implemented naming state:
 
-- product UI: Yönlek
-- npm package: `yonlek`
-- GitHub repository: `yonlek`
-- local repository folder: `yonlek`
+- product UI: uduzgak
+- npm package: `uduzgak`
+- GitHub repository: `yonlek` (existing URL; rename pending)
+- local repository folder: `yonlek` (existing checkout; rename pending)
 - browser storage keys: intentionally still `workspace-app.*`
 
 Formal clearance remains open:
@@ -578,3 +578,14 @@ persisted. Storage version remains 1.
 - Formula fields remain read-only and are excluded from the bulk value editor.
 - Type migration keeps its existing behavior: changing a field type clears incompatible Task values, and later bulk writes must match the new type.
 - Repeated caller Task IDs are deduplicated by the reducer action boundary, and each bulk command uses one Workspace dispatch.
+
+## Gantt evolution, TDD 391-410
+
+- [x] Schedule movement and keyboard/drag controls (391-395)
+- [x] Visible `blocks` relationship lines (396-400)
+- [x] Milestone flags and original-schedule baselines (401-405)
+- [x] Pure scheduled-Task dependency graph and critical-path duration/slack calculation (406-410)
+- [ ] Resource-aware / holiday-aware work calendar
+- [ ] Critical-path UI styling, explanatory breakdown, and selection controls
+
+Critical-path analysis is derived and not persisted. A milestone is a zero-day event; ordinary Task spans use inclusive UTC calendar-day duration. Unscheduled Task endpoints are not auto-filled or inferred. The logical network does not model idle gaps in actual dates, resources, or labor calendars.

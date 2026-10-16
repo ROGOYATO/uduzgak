@@ -25,8 +25,8 @@ class MemoryStore implements KeyValueStore {
   }
 }
 
-describe('Yönlek product identity', () => {
-  it('uses Yönlek on the browser recovery screen', () => {
+describe('uduzgak product identity', () => {
+  it('uses uduzgak on the browser recovery screen', () => {
     render(
       <BrowserApp
         storage={{
@@ -40,10 +40,10 @@ describe('Yönlek product identity', () => {
       />,
     )
 
-    expect(screen.getByRole('heading', { name: 'Yönlek' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'uduzgak' })).toBeTruthy()
   })
 
-  it('uses the Yönlek web/package identity without changing storage keys', () => {
+  it('uses the uduzgak web/package identity without changing storage keys', () => {
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8')
     const packageDocument = JSON.parse(
       readFileSync(resolve(process.cwd(), 'package.json'), 'utf8'),
@@ -52,9 +52,10 @@ describe('Yönlek product identity', () => {
 
     saveWorkspace(storage, emptyWorkspace)
 
-    expect(html).toContain('<title>Yönlek</title>')
-    expect(packageDocument.name).toBe('yonlek')
+    expect(html).toContain('<title>uduzgak</title>')
+    expect(packageDocument.name).toBe('uduzgak')
     expect(storage.getItem('workspace-app.workspace')).not.toBeNull()
     expect(storage.getItem('yonlek.workspace')).toBeNull()
+    expect(storage.getItem('uduzgak.workspace')).toBeNull()
   })
 })

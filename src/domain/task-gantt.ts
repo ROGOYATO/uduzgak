@@ -91,3 +91,163 @@ export function createTaskGanttScheduleChange(
     dueDate: scheduled.dueDate!,
   }
 }
+
+/** Inclusive UTC calendar duration; milestones are zero-duration events. */
+export function getTaskGanttDurationDays(task: Task): number | null {
+  if (task.startDate === undefined || task.dueDate === undefined) return null
+  if (task.isMilestone === true) return 0
+  const start = Date.parse(`${task.startDate}T00:00:00.000Z`)
+  const end = Date.parse(`${task.dueDate}T00:00:00.000Z`)
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+    throw new Error('Invalid Gantt Task date range')
+  }
+  return (end - start) / 86_400_000 + 1
+}
+
+export interface TaskGanttCriticalNode {
+  taskId: string
+  durationDays: number
+  isMilestone: boolean
+}
+
+export interface TaskGanttCriticalGraph {
+  nodes: TaskGanttCriticalNode[]
+  edges: Array<{ sourceTaskId: string; targetTaskId: string }>
+}
+
+/** Projected graph includes only scheduled input Tasks and their `blocks` edges. */
+export function createTaskGanttCriticalGraph(
+  tasks: readonly Task[],
+  relationships: readonly TaskRelationship[],
+): TaskGanttCriticalGraph {
+  const nodes: TaskGanttCriticalNode[] = []
+  const ids = new Set<string>()
+  for (const task of tasks) {
+    if (ids.has(task.id)) throw new Error('Duplicate Gantt Task ID')
+    ids.add(task.id)
+    const durationDays = getTaskGanttDurationDays(task)
+    if (durationDays !== null) {
+      nodes.push({ taskId: task.id, durationDays, isMilestone: task.isMilestone === true })
+    }
+  }
+  const scheduled = new Set(nodes.map((node) => node.taskId))
+  const seenEdges = new Set<string>()
+  const edges: TaskGanttCriticalGraph['edges'] = []
+  for (const edge of relationships) {
+    if (edge.type !== 'blocks' || !scheduled.has(edge.sourceTaskId) || !scheduled.has(edge.targetTaskId)) {
+      continue
+    }
+    const key = `${edge.sourceTaskId}\u0000${edge.targetTaskId}`
+    if (seenEdges.has(key)) continue
+    seenEdges.add(key)
+    edges.push({ sourceTaskId: edge.sourceTaskId, targetTaskId: edge.targetTaskId })
+  }
+  return { nodes, edges }
+}
+
+/** Stable Kahn order: equal-priority roots retain input Task order. */
+export function createTaskGanttCriticalOrder(
+  tasks: readonly Task[],
+  relationships: readonly TaskRelationship[],
+): string[] {
+  const graph = createTaskGanttCriticalGraph(tasks, relationships)
+  const indegree = new Map(graph.nodes.map((node) => [node.taskId, 0]))
+  for (const edge of graph.edges) {
+    indegree.set(edge.targetTaskId, indegree.get(edge.targetTaskId)! + 1)
+  }
+  const processed = new Set<string>()
+  const ordered: string[] = []
+  while (ordered.length < graph.nodes.length) {
+    const next = graph.nodes.find((node) => !processed.has(node.taskId) && indegree.get(node.taskId) === 0)
+    if (!next) throw new Error('Gantt dependency cycle')
+    processed.add(next.taskId)
+    ordered.push(next.taskId)
+    for (const edge of graph.edges) {
+      if (edge.sourceTaskId === next.taskId) {
+        indegree.set(edge.targetTaskId, indegree.get(edge.targetTaskId)! - 1)
+      }
+    }
+  }
+  return ordered
+}
+
+export interface TaskGanttEarliestOffset {
+  taskId: string
+  earliestStart: number
+  earliestFinish: number
+}
+
+/** Offsets measure logical finish-to-start dependencies, not wall-clock dates. */
+export function createTaskGanttEarliestOffsets(
+  tasks: readonly Task[],
+  relationships: readonly TaskRelationship[],
+): TaskGanttEarliestOffset[] {
+  const graph = createTaskGanttCriticalGraph(tasks, relationships)
+  const order = createTaskGanttCriticalOrder(tasks, relationships)
+  const nodeById = new Map(graph.nodes.map((node) => [node.taskId, node]))
+  const offsets = new Map<string, TaskGanttEarliestOffset>()
+  for (const taskId of order) {
+    const predecessors = graph.edges.filter((edge) => edge.targetTaskId === taskId)
+    const earliestStart = predecessors.reduce(
+      (maximum, edge) => Math.max(maximum, offsets.get(edge.sourceTaskId)!.earliestFinish),
+      0,
+    )
+    offsets.set(taskId, {
+      taskId,
+      earliestStart,
+      earliestFinish: earliestStart + nodeById.get(taskId)!.durationDays,
+    })
+  }
+  return graph.nodes.map((node) => offsets.get(node.taskId)!)
+}
+
+export interface TaskGanttCriticalPathRow extends TaskGanttEarliestOffset {
+  durationDays: number
+  latestStart: number
+  latestFinish: number
+  slackDays: number
+  isCritical: boolean
+  isMilestone: boolean
+}
+
+export interface TaskGanttCriticalPath {
+  durationDays: number
+  rows: TaskGanttCriticalPathRow[]
+  criticalTaskIds: string[]
+}
+
+/** Pure dependency-duration analysis; deliberately ignores resource limits and calendar gaps. */
+export function createTaskGanttCriticalPath(
+  tasks: readonly Task[],
+  relationships: readonly TaskRelationship[],
+): TaskGanttCriticalPath {
+  const graph = createTaskGanttCriticalGraph(tasks, relationships)
+  const earliest = createTaskGanttEarliestOffsets(tasks, relationships)
+  const durationDays = earliest.reduce((maximum, row) => Math.max(maximum, row.earliestFinish), 0)
+  const earliestById = new Map(earliest.map((row) => [row.taskId, row]))
+  const latestById = new Map<string, { start: number; finish: number }>()
+  const durations = new Map(graph.nodes.map((node) => [node.taskId, node.durationDays]))
+  const order = createTaskGanttCriticalOrder(tasks, relationships)
+  for (const taskId of [...order].reverse()) {
+    const successors = graph.edges.filter((edge) => edge.sourceTaskId === taskId)
+    const latestFinish = successors.length === 0
+      ? durationDays
+      : Math.min(...successors.map((edge) => latestById.get(edge.targetTaskId)!.start))
+    latestById.set(taskId, { start: latestFinish - durations.get(taskId)!, finish: latestFinish })
+  }
+  const rows = graph.nodes.map((node): TaskGanttCriticalPathRow => {
+    const early = earliestById.get(node.taskId)!
+    const late = latestById.get(node.taskId)!
+    const slackDays = late.start - early.earliestStart
+    return {
+      ...early,
+      durationDays: node.durationDays,
+      latestStart: late.start,
+      latestFinish: late.finish,
+      slackDays,
+      isCritical: slackDays === 0,
+      isMilestone: node.isMilestone,
+    }
+  })
+  return { durationDays, rows, criticalTaskIds: rows.filter((row) => row.isCritical).map((row) => row.taskId) }
+}
