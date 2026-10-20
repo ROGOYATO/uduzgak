@@ -7,6 +7,7 @@ import {
   createTaskGanttItems,
   createTaskGanttBaselineComparison,
   createTaskGanttCriticalPath,
+  createTaskGanttScheduleConflicts,
 } from './domain/task-gantt'
 import { createTaskTableRows } from './domain/task-table'
 import { createTaskTimelineItems } from './domain/task-timeline'
@@ -321,6 +322,8 @@ export function App({
   const [ganttScheduleDrafts, setGanttScheduleDrafts] = useState<
     Record<string, { startDate: string; dueDate: string }>
   >({})
+  const [ganttOverviewCriticalOnly, setGanttOverviewCriticalOnly] = useState(false)
+  const [ganttShowLogicalOffsets, setGanttShowLogicalOffsets] = useState(false)
   const [customFieldFilterFieldId, setCustomFieldFilterFieldId] = useState(
     initialViewPreferences.customFieldFilter?.fieldId ?? '',
   )
@@ -711,6 +714,21 @@ export function App({
     } catch (caught) {
       setError(errorMessage(caught))
     }
+  }
+
+  function selectVisibleCriticalGanttTasks() {
+    const criticalTaskIds = visibleProjects.flatMap((project) =>
+      createTaskGanttCriticalPath(
+        activeTasks.filter(
+          (task) => task.projectId === project.id && visibleTaskIdSet.has(task.id),
+        ),
+        relationships,
+      ).criticalTaskIds,
+    )
+    if (criticalTaskIds.length === 0) return
+    setBulkSelectionMode(true)
+    setSelectedTaskIds(criticalTaskIds)
+    setBulkDeletePending(false)
   }
 
   function changeArchivedTaskSelection(taskId: string, selected: boolean) {
@@ -2454,6 +2472,30 @@ export function App({
         </form>
       ) : null}
 
+      {taskViewMode === 'gantt' && activeProjects.length > 0 ? (
+        <button
+          type="button"
+          aria-pressed={ganttOverviewCriticalOnly}
+          onClick={() => setGanttOverviewCriticalOnly((current) => !current)}
+        >
+          Critical tasks only in Gantt overview
+        </button>
+      ) : null}
+      {taskViewMode === 'gantt' && activeProjects.length > 0 ? (
+        <button
+          type="button"
+          aria-pressed={ganttShowLogicalOffsets}
+          onClick={() => setGanttShowLogicalOffsets((current) => !current)}
+        >
+          Show Gantt logical offsets
+        </button>
+      ) : null}
+      {taskViewMode === 'gantt' && activeProjects.length > 0 ? (
+        <button type="button" onClick={selectVisibleCriticalGanttTasks}>
+          Select visible critical Gantt tasks
+        </button>
+      ) : null}
+
       {activeProjects.length === 0 ? (
         <p>No projects yet.</p>
       ) : (
@@ -2496,6 +2538,19 @@ export function App({
           const ganttCriticalRows = new Map(
             (ganttCriticalPath?.rows ?? []).map((row) => [row.taskId, row] as const),
           )
+          const ganttOverviewItems = ganttOverviewCriticalOnly
+            ? ganttItems.filter((item) => ganttCriticalRows.get(item.task.id)?.isCritical)
+            : ganttItems
+          const ganttOverviewIds = new Set(ganttOverviewItems.map((item) => item.task.id))
+          const ganttOverviewEdges = ganttOverviewCriticalOnly
+            ? ganttDependencyEdges.filter(
+                (edge) => ganttOverviewIds.has(edge.sourceTaskId) && ganttOverviewIds.has(edge.targetTaskId),
+              )
+            : ganttDependencyEdges
+          const ganttScheduleConflicts = taskViewMode === 'gantt'
+            ? createTaskGanttScheduleConflicts(tasks, relationships)
+            : []
+          const ganttTaskNames = new Map(tasks.map((task) => [task.id, task.title] as const))
           const taskEntries =
             taskViewMode === 'board'
               ? boardColumns.flatMap((column) => [
@@ -2931,7 +2986,7 @@ export function App({
                       className="task-gantt-summary"
                       aria-label={`Task Gantt for ${project.name}`}
                     >
-                      {ganttItems.map((item) => {
+                      {ganttOverviewItems.map((item) => {
                         const criticalRow = ganttCriticalRows.get(item.task.id)
                         const draft = ganttScheduleDrafts[item.task.id] ?? {
                           startDate: item.startDate ?? '',
@@ -2958,6 +3013,11 @@ export function App({
                                 {criticalRow.isCritical
                                   ? 'Critical (0 days slack)'
                                   : `Not critical (${criticalRow.slackDays} days slack)`}
+                              </span>
+                            ) : null}
+                            {ganttShowLogicalOffsets && criticalRow ? (
+                              <span aria-label={`Gantt logical offsets for ${item.task.title}`}>
+                                {`Earliest ${criticalRow.earliestStart} to ${criticalRow.earliestFinish} days; latest ${criticalRow.latestStart} to ${criticalRow.latestFinish} days`}
                               </span>
                             ) : null}
                             {item.task.isMilestone ? <span>Milestone</span> : null}
@@ -3060,12 +3120,12 @@ export function App({
                     </ol>
                   ) : null}
                   {taskViewMode === 'gantt' &&
-                  ganttDependencyEdges.length > 0 ? (
+                  ganttOverviewEdges.length > 0 ? (
                     <ol
                       className="task-gantt-dependency-lines"
                       aria-label={`Gantt dependencies for ${project.name}`}
                     >
-                      {ganttDependencyEdges.map((edge) => (
+                      {ganttOverviewEdges.map((edge) => (
                         <li
                           key={edge.relationshipId}
                           className="task-gantt-dependency-line"
@@ -3075,6 +3135,18 @@ export function App({
                         </li>
                       ))}
                     </ol>
+                  ) : null}
+                  {taskViewMode === 'gantt' && ganttScheduleConflicts.length > 0 ? (
+                    <div className="task-gantt-schedule-warning">
+                      <p>{`${ganttScheduleConflicts.length} Gantt dependency schedule conflict${ganttScheduleConflicts.length === 1 ? '' : 's'}`}</p>
+                      <ul aria-label={`Gantt schedule conflicts for ${project.name}`}>
+                        {ganttScheduleConflicts.map((conflict) => (
+                          <li key={`${conflict.sourceTaskId}-${conflict.targetTaskId}`}>
+                            {`${ganttTaskNames.get(conflict.sourceTaskId)} ends ${conflict.sourceFinishDate}; ${ganttTaskNames.get(conflict.targetTaskId)} starts ${conflict.targetStartDate}`}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : null}
                   {taskViewMode === 'timeline' ? (
                     <ol

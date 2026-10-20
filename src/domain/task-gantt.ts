@@ -251,3 +251,40 @@ export function createTaskGanttCriticalPath(
   })
   return { durationDays, rows, criticalTaskIds: rows.filter((row) => row.isCritical).map((row) => row.taskId) }
 }
+
+export interface TaskGanttScheduleConflict {
+  sourceTaskId: string
+  targetTaskId: string
+  sourceFinishDate: string
+  targetStartDate: string
+}
+
+/** A Finish-to-Start link requires the successor to begin after an ordinary Task finishes.
+ * A zero-day milestone may hand off to its successor on the same calendar date. */
+export function createTaskGanttScheduleConflicts(
+  tasks: readonly Task[],
+  relationships: readonly TaskRelationship[],
+): TaskGanttScheduleConflict[] {
+  const scheduled = new Map(
+    tasks.filter((task) => task.startDate !== undefined && task.dueDate !== undefined)
+      .map((task) => [task.id, task] as const),
+  )
+  const seen = new Set<string>()
+  const conflicts: TaskGanttScheduleConflict[] = []
+  for (const relationship of relationships) {
+    if (relationship.type !== 'blocks') continue
+    const source = scheduled.get(relationship.sourceTaskId)
+    const target = scheduled.get(relationship.targetTaskId)
+    if (!source || !target) continue
+    const key = `${source.id}\u0000${target.id}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    const sourceFinishDate = source.dueDate!
+    const targetStartDate = target.startDate!
+    if (sourceFinishDate < targetStartDate || (source.isMilestone && sourceFinishDate === targetStartDate)) {
+      continue
+    }
+    conflicts.push({ sourceTaskId: source.id, targetTaskId: target.id, sourceFinishDate, targetStartDate })
+  }
+  return conflicts
+}

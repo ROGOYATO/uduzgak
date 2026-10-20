@@ -737,3 +737,7 @@ uduzgak supports bulk set/clear for Text, Number, Checkbox, Date, and Select Cus
 ### TDD 411 — Gantt critical-path display
 
 Gantt now displays the logical dependency-path duration for each Project and marks scheduled Tasks as critical or non-critical with the computed slack in days. This is a derived, read-only projection over currently visible Tasks and their `blocks` relationships; unscheduled Tasks receive no critical-path label. The calculation represents dependency durations, **not** the actual elapsed calendar schedule, working days, resource contention, or holiday delays. List, Board, Table, and other modes do not calculate or display this summary.
+
+### TDD 412-416 — Gantt critical-path controls and schedule diagnostics
+
+The Gantt overview can hide noncritical rows without hiding Task detail controls, and filters displayed dependency lines to the overview endpoints. An optional logical-offset breakdown displays earliest and latest start/finish offsets rather than actual calendar dates. The critical-Task selection action uses the existing visible Task bulk-selection controls without changing or persisting task state. The schedule conflict analyzer checks in-scope scheduled `blocks` links for a source end date that does not precede its target start date; zero-day milestones can hand off on the same date. Conflicts appear in the Gantt view and disappear after a valid schedule correction. These are derived UI/analysis features, not persisted data changes, and they do not add resource or holiday awareness.

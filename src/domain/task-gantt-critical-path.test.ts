@@ -7,6 +7,7 @@ import {
   getTaskGanttDurationDays,
 } from './task-gantt'
 import { createTask, type Task } from './task'
+import * as ganttModule from './task-gantt'
 import type { TaskRelationship } from './task-relationship'
 
 function task(id: string, startDate?: string, dueDate?: string, isMilestone = false): Task {
@@ -84,4 +85,29 @@ describe('Gantt critical-path slack calculation', () => {
     expect(JSON.stringify({ tasks, edges })).toBe(before)
     expect(createTaskGanttCriticalPath([], [])).toEqual({ durationDays: 0, rows: [], criticalTaskIds: [] })
   })
+})
+
+
+it('finds only actual blocking date conflicts, treating milestone same-day handoffs as valid', () => {
+  type ConflictsFn = (
+    tasks: readonly Task[], relationships: readonly TaskRelationship[],
+  ) => Array<{ sourceTaskId: string; targetTaskId: string; sourceFinishDate: string; targetStartDate: string }>
+  const inspect = (ganttModule as unknown as { createTaskGanttScheduleConflicts: ConflictsFn }).createTaskGanttScheduleConflicts
+  expect(typeof inspect).toBe('function')
+  const tasks = [
+    task('a', '2026-10-19', '2026-10-20'),
+    task('b', '2026-10-20', '2026-10-22'),
+    task('c', '2026-10-21', '2026-10-22'),
+    task('m', '2026-10-22', '2026-10-22', true),
+    task('d', '2026-10-22', '2026-10-23'),
+    task('u', '2026-10-20'),
+  ]
+  const edges = [blocks('r1', 'a', 'b'), blocks('r2', 'a', 'c'), blocks('r3', 'm', 'd'),
+    blocks('r4', 'a', 'u'), blocks('r5', 'a', 'b'),
+    { ...blocks('r6', 'b', 'c'), type: 'related' as const }]
+  const snapshot = JSON.stringify({ tasks, edges })
+  expect(inspect(tasks, edges)).toEqual([
+    { sourceTaskId: 'a', targetTaskId: 'b', sourceFinishDate: '2026-10-20', targetStartDate: '2026-10-20' },
+  ])
+  expect(JSON.stringify({ tasks, edges })).toBe(snapshot)
 })

@@ -309,3 +309,14 @@ textarea {
   border-left: 4px solid #35628d;
   background: #f0f5fb;
 }
+
+.task-gantt-schedule-warning {
+  margin-top: 14px;
+  padding: 12px 16px;
+  border: 1px solid #cb9c45;
+  border-radius: 10px;
+  background: #fff9e9;
+}
+
+.task-gantt-schedule-warning > p { margin: 0; font-weight: 700; }
+.task-gantt-schedule-warning ul { margin-top: 8px; }

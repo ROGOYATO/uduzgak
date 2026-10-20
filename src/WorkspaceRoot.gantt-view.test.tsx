@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
 import { createWorkspaceCommands } from './application/workspace-commands'
@@ -22,6 +23,35 @@ class MemoryStore implements KeyValueStore {
   setItem(key: string, value: string) {
     this.values.set(key, value)
   }
+}
+
+function renderCriticalGanttWorkspace({ conflicting = false } = {}) {
+  const user = userEvent.setup()
+  const store = createWorkspaceStore(new MemoryStore())
+  const ids = ['project-1', 'task-a', 'task-b', 'task-c', 'task-u', 'edge-1', 'edge-2']
+  const commands = createWorkspaceCommands(store, {
+    nextId: () => ids.shift() ?? 'unexpected-id',
+    now: () => '2026-10-17T01:00:00.000Z',
+  })
+  const project = commands.addProject('Demo')
+  const alpha = commands.addTask(project.id, 'Alpha')
+  const beta = commands.addTask(project.id, 'Beta')
+  const side = commands.addTask(project.id, 'Side task')
+  commands.addTask(project.id, 'Unscheduled')
+  commands.changeTaskStartDate(alpha.id, '2026-10-19')
+  commands.changeTaskDueDate(alpha.id, '2026-10-20')
+  commands.changeTaskStartDate(beta.id, conflicting ? '2026-10-20' : '2026-10-21')
+  commands.changeTaskDueDate(beta.id, '2026-10-23')
+  commands.changeTaskStartDate(side.id, '2026-10-21')
+  commands.changeTaskDueDate(side.id, '2026-10-21')
+  commands.addTaskRelationship('blocks', alpha.id, beta.id)
+  commands.addTaskRelationship('blocks', alpha.id, side.id)
+  const initialViewPreferences = updateViewPreferences(
+    createDefaultViewPreferences(),
+    { projectView: project.id, viewMode: 'gantt' },
+  )
+  render(<WorkspaceRoot store={store} commands={commands} initialViewPreferences={initialViewPreferences} />)
+  return { user, store, commands, alpha, beta, side, ids }
 }
 
 describe('WorkspaceRoot Gantt view', () => {
@@ -74,5 +104,69 @@ describe('WorkspaceRoot Gantt view', () => {
     ])
     expect(within(gantt).getAllByText('Unscheduled')).toHaveLength(3)
     expect(ids).toEqual([])
+  })
+
+  it('filters only the Gantt overview to critical Tasks, preserving detail controls and stored data', async () => {
+    const { user, store, ids } = renderCriticalGanttWorkspace()
+    const snapshot = JSON.stringify(store.getState())
+    const overview = () => screen.getByRole('list', { name: 'Task Gantt for Demo' })
+    const dependencies = () => screen.getByRole('list', { name: 'Gantt dependencies for Demo' })
+    const toggle = screen.getByRole('button', { name: 'Critical tasks only in Gantt overview' })
+
+    expect(within(overview()).getAllByRole('listitem')).toHaveLength(4)
+    expect(within(dependencies()).getAllByRole('listitem')).toHaveLength(2)
+    expect(toggle.getAttribute('aria-pressed')).toBe('false')
+    await user.click(toggle)
+    expect(toggle.getAttribute('aria-pressed')).toBe('true')
+    expect(within(overview()).getAllByRole('listitem')).toHaveLength(2)
+    expect(within(overview()).getByText('Alpha')).toBeTruthy()
+    expect(within(overview()).getByText('Beta')).toBeTruthy()
+    expect(within(overview()).queryByText('Side task')).toBeNull()
+    expect(within(overview()).queryByText('Unscheduled')).toBeNull()
+    expect(within(dependencies()).getAllByRole('listitem')).toHaveLength(1)
+    expect(within(dependencies()).getByText('Alpha blocks Beta')).toBeTruthy()
+    expect(screen.getByRole('listitem', { name: 'Gantt task details Side task' })).toBeTruthy()
+    expect(screen.getByText(/Logical critical path: 5 days/)).toBeTruthy()
+    await user.click(toggle)
+    expect(within(overview()).getAllByRole('listitem')).toHaveLength(4)
+    expect(within(dependencies()).getAllByRole('listitem')).toHaveLength(2)
+    expect(JSON.stringify(store.getState())).toBe(snapshot)
+    expect(ids).toEqual([])
+  })
+
+  it('reveals early and late Gantt logical offsets on request without editing schedules', async () => {
+    const { user, store } = renderCriticalGanttWorkspace()
+    const before = JSON.stringify(store.getState())
+    const toggle = screen.getByRole('button', { name: 'Show Gantt logical offsets' })
+    expect(screen.queryByLabelText('Gantt logical offsets for Alpha')).toBeNull()
+    await user.click(toggle)
+    expect(screen.getByLabelText('Gantt logical offsets for Alpha').textContent).toContain('Earliest 0 to 2 days; latest 0 to 2 days')
+    expect(screen.getByLabelText('Gantt logical offsets for Side task').textContent).toContain('Earliest 2 to 3 days; latest 4 to 5 days')
+    expect(screen.queryByLabelText('Gantt logical offsets for Unscheduled')).toBeNull()
+    await user.click(toggle)
+    expect(screen.queryByLabelText('Gantt logical offsets for Alpha')).toBeNull()
+    expect(JSON.stringify(store.getState())).toBe(before)
+  })
+
+  it('selects visible critical Tasks for existing bulk controls without changing Workspace state', async () => {
+    const { user, store } = renderCriticalGanttWorkspace()
+    const before = JSON.stringify(store.getState())
+    await user.click(screen.getByRole('button', { name: 'Select visible critical Gantt tasks' }))
+    expect(screen.getByText('2 tasks selected')).toBeTruthy()
+    expect((screen.getByRole('checkbox', { name: 'Select task Alpha' }) as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByRole('checkbox', { name: 'Select task Beta' }) as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByRole('checkbox', { name: 'Select task Side task' }) as HTMLInputElement).checked).toBe(false)
+    expect((screen.getByRole('checkbox', { name: 'Select task Unscheduled' }) as HTMLInputElement).checked).toBe(false)
+    expect(JSON.stringify(store.getState())).toBe(before)
+  })
+
+  it('warns about a real Gantt blocking date conflict and clears it after schedule correction', async () => {
+    const { store, commands, beta } = renderCriticalGanttWorkspace({ conflicting: true })
+    const warning = screen.getByRole('list', { name: 'Gantt schedule conflicts for Demo' })
+    expect(within(warning).getByText('Alpha ends 2026-10-20; Beta starts 2026-10-20')).toBeTruthy()
+    expect(screen.getByText('1 Gantt dependency schedule conflict')).toBeTruthy()
+    await act(async () => { commands.changeTaskStartDate(beta.id, '2026-10-21') })
+    expect(screen.queryByRole('list', { name: 'Gantt schedule conflicts for Demo' })).toBeNull()
+    expect(store.getState().tasks.find((task) => task.id === beta.id)?.startDate).toBe('2026-10-21')
   })
 })
