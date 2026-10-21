@@ -8,6 +8,7 @@ import {
   createTaskGanttBaselineComparison,
   createTaskGanttCriticalPath,
   createTaskGanttScheduleConflicts,
+  createTaskGanttWorkingCriticalPath,
 } from './domain/task-gantt'
 import { createTaskTableRows } from './domain/task-table'
 import { createTaskTimelineItems } from './domain/task-timeline'
@@ -324,6 +325,7 @@ export function App({
   >({})
   const [ganttOverviewCriticalOnly, setGanttOverviewCriticalOnly] = useState(false)
   const [ganttShowLogicalOffsets, setGanttShowLogicalOffsets] = useState(false)
+  const [ganttShowWorkingDays, setGanttShowWorkingDays] = useState(false)
   const [customFieldFilterFieldId, setCustomFieldFilterFieldId] = useState(
     initialViewPreferences.customFieldFilter?.fieldId ?? '',
   )
@@ -2491,6 +2493,12 @@ export function App({
         </button>
       ) : null}
       {taskViewMode === 'gantt' && activeProjects.length > 0 ? (
+        <button type="button" aria-pressed={ganttShowWorkingDays}
+          onClick={() => setGanttShowWorkingDays((current) => !current)}>
+          Show Gantt working-day analysis
+        </button>
+      ) : null}
+      {taskViewMode === 'gantt' && activeProjects.length > 0 ? (
         <button type="button" onClick={selectVisibleCriticalGanttTasks}>
           Select visible critical Gantt tasks
         </button>
@@ -2537,6 +2545,12 @@ export function App({
             : null
           const ganttCriticalRows = new Map(
             (ganttCriticalPath?.rows ?? []).map((row) => [row.taskId, row] as const),
+          )
+          const ganttWorkingPath = taskViewMode === 'gantt' && ganttShowWorkingDays
+            ? createTaskGanttWorkingCriticalPath(tasks, relationships)
+            : null
+          const ganttWorkingRows = new Map(
+            (ganttWorkingPath?.rows ?? []).map((row) => [row.taskId, row] as const),
           )
           const ganttOverviewItems = ganttOverviewCriticalOnly
             ? ganttItems.filter((item) => ganttCriticalRows.get(item.task.id)?.isCritical)
@@ -2981,6 +2995,13 @@ export function App({
                         : `Logical critical path: ${ganttCriticalPath.durationDays} days (visible scheduled tasks; blocks dependencies only)`}
                     </p>
                   ) : null}
+                  {taskViewMode === 'gantt' && ganttWorkingPath ? (
+                    <p aria-label={`Gantt working-day critical path for ${project.name}`}>
+                      {ganttWorkingPath.rows.length === 0
+                        ? 'No scheduled tasks for working-day analysis'
+                        : `Working-day critical path: ${ganttWorkingPath.durationDays} working days (Monday-Friday; holidays not configured)`}
+                    </p>
+                  ) : null}
                   {taskViewMode === 'gantt' ? (
                     <ol
                       className="task-gantt-summary"
@@ -3013,6 +3034,13 @@ export function App({
                                 {criticalRow.isCritical
                                   ? 'Critical (0 days slack)'
                                   : `Not critical (${criticalRow.slackDays} days slack)`}
+                              </span>
+                            ) : null}
+                            {ganttWorkingPath && ganttWorkingRows.has(item.task.id) ? (
+                              <span aria-label={`Gantt working-day status for ${item.task.title}`}>
+                                {ganttWorkingRows.get(item.task.id)!.isCritical
+                                  ? 'Critical (0 working days slack)'
+                                  : `Not critical (${ganttWorkingRows.get(item.task.id)!.slackDays} working days slack)`}
                               </span>
                             ) : null}
                             {ganttShowLogicalOffsets && criticalRow ? (

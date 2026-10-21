@@ -3373,3 +3373,12 @@ Verification boundary: one new behavior test, adjacent App and Gantt smoke tests
 ## TDD 412-416 — Gantt controls and schedule consistency (prepared batch)
 
 Starting confirmed live state: `d1576de9a36ffe7736d38702d03c9024a068fb32`, Gantt critical-path UI TDD 411. Five discrete test-first cycles: (412) critical-only overview with dependency filtering; (413) optional early/late logical offset details; (414) bulk-select visible critical Tasks without mutation; (415) pure blocking date-conflict detection including zero-day milestone semantics; (416) Gantt conflict rendering and reactive resolution. Existing relevant test files are extended; no new test files. Every cycle checks its new behavior and relevant prior targeted regressions, zero-warning lint, and TypeScript/Vite build. After all five, run only a narrowly scoped Gantt integration smoke. Never run the full Vitest suite automatically. Scratch replay and live state transitions require pinned HEAD/tree/blob/remote, exact changed paths, digest equality, clean commit and non-force push. This is a prepared target until the Windows runner succeeds; don't claim these changes are live based on this document.
+
+
+## TDD 417–421 — working calendar and optional Gantt analysis (prepared)
+
+Start boundary: `9287ee9c320dfe04be35467053011ab74d3e3f05` (`TDD 412–416: add Gantt critical controls and schedule diagnostics`).
+
+RED/GREEN cycles: 417 count inclusive UTC weekdays without changing calendar-day duration, 418 validate/deduplicate excluded dates, 419 substitute working-day durations into in-scope `blocks` graph, 420 calculate longest working-day path/slack, 421 show optional working-day UI alongside unchanged calendar-day summary. Test coverage is added only to the existing Gantt domain and browser-view test files. No new test files.
+
+Per-cycle gates: one RED focused test first, minimal GREEN patch, focused domain/UI tests, zero-warning lint, TypeScript/build. Final narrow Gantt regression smoke, exact-path/hash transfer audit, clean-tree/remote checks, non-force commit/push. Never run full Vitest automatically. Prepared until the user executes the Windows runner; do not claim a live checkpoint based on package creation alone.

@@ -741,3 +741,7 @@ Gantt now displays the logical dependency-path duration for each Project and mar
 ### TDD 412-416 — Gantt critical-path controls and schedule diagnostics
 
 The Gantt overview can hide noncritical rows without hiding Task detail controls, and filters displayed dependency lines to the overview endpoints. An optional logical-offset breakdown displays earliest and latest start/finish offsets rather than actual calendar dates. The critical-Task selection action uses the existing visible Task bulk-selection controls without changing or persisting task state. The schedule conflict analyzer checks in-scope scheduled `blocks` links for a source end date that does not precede its target start date; zero-day milestones can hand off on the same date. Conflicts appear in the Gantt view and disappear after a valid schedule correction. These are derived UI/analysis features, not persisted data changes, and they do not add resource or holiday awareness.
+
+### TDD 417–421 — Gantt working-day analysis
+
+The existing calendar-day logical critical path is preserved. Gantt can optionally show a separate Monday–Friday working-day critical path and per-Task slack using the same visible scheduled Task dependency graph. Domain helpers support validated, unique excluded dates (for holidays), but the UI does not yet configure holiday exceptions. Both projections are logical dependency-duration metrics, not elapsed-date forecasts or resource scheduling. No workspace storage schema changed.

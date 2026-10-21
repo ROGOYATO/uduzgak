@@ -288,3 +288,89 @@ export function createTaskGanttScheduleConflicts(
   }
   return conflicts
 }
+
+/** Inclusive Monday-Friday UTC duration; milestones remain zero-day events. */
+export function countTaskGanttWorkingDays(
+  task: Task,
+  nonWorkingDates: readonly string[] = [],
+): number | null {
+  const exceptions = new Set(nonWorkingDates)
+  for (const day of exceptions) {
+    const parsed = Date.parse(`${day}T00:00:00.000Z`)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !Number.isFinite(parsed) ||
+      new Date(parsed).toISOString().slice(0, 10) !== day) {
+      throw new Error('Invalid Gantt non-working date')
+    }
+  }
+  if (task.startDate === undefined || task.dueDate === undefined) return null
+  if (task.isMilestone === true) return 0
+  const start = Date.parse(`${task.startDate}T00:00:00.000Z`)
+  const end = Date.parse(`${task.dueDate}T00:00:00.000Z`)
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+    throw new Error('Invalid Gantt Task date range')
+  }
+  let days = 0
+  for (let instant = start; instant <= end; instant += 86_400_000) {
+    const date = new Date(instant)
+    const weekday = date.getUTCDay()
+    if (weekday !== 0 && weekday !== 6 &&
+      !exceptions.has(date.toISOString().slice(0, 10))) days++
+  }
+  return days
+}
+
+/** Scheduled `blocks` graph with logical durations measured in working days. */
+export function createTaskGanttWorkingGraph(
+  tasks: readonly Task[],
+  relationships: readonly TaskRelationship[],
+  nonWorkingDates: readonly string[] = [],
+): TaskGanttCriticalGraph {
+  const projected = createTaskGanttCriticalGraph(tasks, relationships)
+  const byId = new Map(tasks.map((task) => [task.id, task] as const))
+  return {
+    edges: projected.edges,
+    nodes: projected.nodes.map((node) => ({
+      ...node,
+      durationDays: countTaskGanttWorkingDays(byId.get(node.taskId)!, nonWorkingDates)!,
+    })),
+  }
+}
+
+/** Logical critical path using Monday-Friday Task durations, optionally excluding dates. */
+export function createTaskGanttWorkingCriticalPath(
+  tasks: readonly Task[],
+  relationships: readonly TaskRelationship[],
+  nonWorkingDates: readonly string[] = [],
+): TaskGanttCriticalPath {
+  const graph = createTaskGanttWorkingGraph(tasks, relationships, nonWorkingDates)
+  const order = createTaskGanttCriticalOrder(tasks, relationships)
+  const durations = new Map(graph.nodes.map((node) => [node.taskId, node.durationDays]))
+  const offsets = new Map<string, TaskGanttEarliestOffset>()
+  for (const taskId of order) {
+    const predecessors = graph.edges.filter((edge) => edge.targetTaskId === taskId)
+    const earliestStart = predecessors.reduce(
+      (maximum, edge) => Math.max(maximum, offsets.get(edge.sourceTaskId)!.earliestFinish), 0,
+    )
+    offsets.set(taskId, { taskId, earliestStart, earliestFinish: earliestStart + durations.get(taskId)! })
+  }
+  const durationDays = [...offsets.values()].reduce((maximum, row) => Math.max(maximum, row.earliestFinish), 0)
+  const latestById = new Map<string, { start: number; finish: number }>()
+  for (const taskId of [...order].reverse()) {
+    const successors = graph.edges.filter((edge) => edge.sourceTaskId === taskId)
+    const latestFinish = successors.length === 0
+      ? durationDays
+      : Math.min(...successors.map((edge) => latestById.get(edge.targetTaskId)!.start))
+    latestById.set(taskId, { start: latestFinish - durations.get(taskId)!, finish: latestFinish })
+  }
+  const rows: TaskGanttCriticalPathRow[] = graph.nodes.map((node) => {
+    const early = offsets.get(node.taskId)!
+    const late = latestById.get(node.taskId)!
+    const slackDays = late.start - early.earliestStart
+    return {
+      ...early, durationDays: node.durationDays,
+      latestStart: late.start, latestFinish: late.finish, slackDays,
+      isCritical: slackDays === 0, isMilestone: node.isMilestone,
+    }
+  })
+  return { durationDays, rows, criticalTaskIds: rows.filter((row) => row.isCritical).map((row) => row.taskId) }
+}

@@ -111,3 +111,76 @@ it('finds only actual blocking date conflicts, treating milestone same-day hando
   ])
   expect(JSON.stringify({ tasks, edges })).toBe(snapshot)
 })
+
+
+describe('Gantt working calendar: weekdays', () => {
+  it('counts inclusive UTC weekdays without changing milestones or unscheduled Tasks', () => {
+    const working = (ganttModule as unknown as {
+      countTaskGanttWorkingDays: (candidate: Task) => number | null
+    }).countTaskGanttWorkingDays
+    expect(typeof working).toBe('function')
+    const fridayThroughTuesday = task('weekday', '2026-10-16', '2026-10-20')
+    const snapshot = { ...fridayThroughTuesday }
+    expect(working(fridayThroughTuesday)).toBe(3)
+    expect(working(task('weekend', '2026-10-17', '2026-10-18'))).toBe(0)
+    expect(working(task('one', '2026-10-19', '2026-10-19'))).toBe(1)
+    expect(working(task('milestone', '2026-10-19', '2026-10-19', true))).toBe(0)
+    expect(working(task('missing', '2026-10-19'))).toBeNull()
+    expect(fridayThroughTuesday).toEqual(snapshot)
+  })
+})
+
+
+it('excludes distinct valid non-working dates without removing weekends twice', () => {
+  const working = (ganttModule as unknown as {
+    countTaskGanttWorkingDays: (candidate: Task, nonWorkingDates?: readonly string[]) => number | null
+  }).countTaskGanttWorkingDays
+  const candidate = task('holiday', '2026-10-16', '2026-10-20')
+  const exceptions = ['2026-10-19', '2026-10-19', '2026-10-17', '2026-11-01']
+  const before = JSON.stringify({ candidate, exceptions })
+  expect(working(candidate, exceptions)).toBe(2)
+  expect(working(candidate)).toBe(3)
+  expect(() => working(candidate, ['2026-02-30'])).toThrow('Invalid Gantt non-working date')
+  expect(JSON.stringify({ candidate, exceptions })).toBe(before)
+})
+
+
+it('projects only scheduled blocking edges into a holiday-aware working-day graph', () => {
+  const workingGraph = (ganttModule as unknown as {
+    createTaskGanttWorkingGraph: (
+      tasks: readonly Task[], relationships: readonly TaskRelationship[], holidays?: readonly string[],
+    ) => { nodes: Array<{ taskId: string; durationDays: number; isMilestone: boolean }>; edges: Array<{ sourceTaskId: string; targetTaskId: string }> }
+  }).createTaskGanttWorkingGraph
+  expect(typeof workingGraph).toBe('function')
+  const tasks = [task('a', '2026-10-16', '2026-10-20'), task('b', '2026-10-21', '2026-10-23'), task('u', '2026-10-21')]
+  const edges = [blocks('edge-1', 'a', 'b'), blocks('edge-2', 'a', 'u'), { ...blocks('edge-3', 'b', 'a'), type: 'related' as const }]
+  expect(workingGraph(tasks, edges, ['2026-10-19'])).toEqual({
+    nodes: [{ taskId: 'a', durationDays: 2, isMilestone: false }, { taskId: 'b', durationDays: 3, isMilestone: false }],
+    edges: [{ sourceTaskId: 'a', targetTaskId: 'b' }],
+  })
+})
+
+
+it('computes working-day longest path and slack with a custom non-working day', () => {
+  const workingPath = (ganttModule as unknown as {
+    createTaskGanttWorkingCriticalPath: (
+      tasks: readonly Task[], relationships: readonly TaskRelationship[], holidays?: readonly string[],
+    ) => { durationDays: number; criticalTaskIds: string[]; rows: Array<{ taskId: string; slackDays: number; earliestStart: number; earliestFinish: number; isCritical: boolean }> }
+  }).createTaskGanttWorkingCriticalPath
+  expect(typeof workingPath).toBe('function')
+  const tasks = [task('side', '2026-10-21', '2026-10-21'), task('a', '2026-10-16', '2026-10-20'),
+    task('b', '2026-10-21', '2026-10-23'), task('u', '2026-10-21')]
+  const edges = [blocks('r1', 'a', 'b'), blocks('r2', 'a', 'side')]
+  const before = JSON.stringify({ tasks, edges })
+  const result = workingPath(tasks, edges, ['2026-10-19'])
+  expect(result.durationDays).toBe(5)
+  expect(result.criticalTaskIds).toEqual(['a', 'b'])
+  expect(result.rows.map(({ taskId, slackDays, isCritical }) => ({ taskId, slackDays, isCritical }))).toEqual([
+    { taskId: 'side', slackDays: 2, isCritical: false },
+    { taskId: 'a', slackDays: 0, isCritical: true },
+    { taskId: 'b', slackDays: 0, isCritical: true },
+  ])
+  expect(result.rows.find((row) => row.taskId === 'b')).toMatchObject({ earliestStart: 2, earliestFinish: 5 })
+  expect(workingPath([], [])).toEqual({ durationDays: 0, rows: [], criticalTaskIds: [] })
+  expect(JSON.stringify({ tasks, edges })).toBe(before)
+})

@@ -170,3 +170,23 @@ describe('WorkspaceRoot Gantt view', () => {
     expect(store.getState().tasks.find((task) => task.id === beta.id)?.startDate).toBe('2026-10-21')
   })
 })
+
+
+it('shows a separate working-day Gantt analysis without altering calendar-day metrics or Task data', async () => {
+  const { user, commands, beta, store } = renderCriticalGanttWorkspace()
+  await act(async () => { commands.changeTaskDueDate(beta.id, '2026-10-25') })
+  const before = JSON.stringify(store.getState())
+  expect(screen.getByText(/Logical critical path: 7 days/)).toBeTruthy()
+  const toggle = screen.getByRole('button', { name: 'Show Gantt working-day analysis' })
+  expect(screen.queryByLabelText('Gantt working-day critical path for Demo')).toBeNull()
+  await user.click(toggle)
+  expect(toggle.getAttribute('aria-pressed')).toBe('true')
+  expect(screen.getByLabelText('Gantt working-day critical path for Demo').textContent).toContain('5 working days')
+  expect(screen.getByLabelText('Gantt working-day status for Beta').textContent).toContain('Critical (0 working days slack)')
+  expect(screen.getByLabelText('Gantt working-day status for Side task').textContent).toContain('Not critical (2 working days slack)')
+  expect(screen.queryByLabelText('Gantt working-day status for Unscheduled')).toBeNull()
+  await user.click(toggle)
+  expect(screen.queryByLabelText('Gantt working-day critical path for Demo')).toBeNull()
+  expect(screen.getByText(/Logical critical path: 7 days/)).toBeTruthy()
+  expect(JSON.stringify(store.getState())).toBe(before)
+})

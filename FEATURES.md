@@ -595,3 +595,13 @@ persisted. Storage version remains 1.
 - [ ] Critical-path selection controls and resource/calendar-aware planning
 
 Critical-path analysis is derived and not persisted. A milestone is a zero-day event; ordinary Task spans use inclusive UTC calendar-day duration. Unscheduled Task endpoints are not auto-filled or inferred. The logical network does not model idle gaps in actual dates, resources, or labor calendars.
+
+## Gantt working calendar — TDD 417–421
+
+- [x] Inclusive UTC Monday–Friday Task durations (417), keeping zero-duration milestones and unscheduled tasks explicit
+- [x] Deduplicated, validated date exceptions for non-working holidays (418)
+- [x] In-scope `blocks` dependency graph with working-day durations (419)
+- [x] Working-day longest path, slack, and critical Task identification (420)
+- [x] Optional separate Gantt working-day analysis and per-Task labels (421)
+
+Working-day calculations are derived and not persisted. The optional view uses Monday–Friday without configured holidays; callers of the domain projection may supply validated excluded dates. Existing calendar-day analysis, schedule records, selection and conflict diagnostics are unchanged. This is logical dependency analysis, not a resource-leveling engine or actual start/finish-date forecast.
