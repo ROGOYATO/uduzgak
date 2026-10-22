@@ -184,3 +184,18 @@ it('computes working-day longest path and slack with a custom non-working day', 
   expect(workingPath([], [])).toEqual({ durationDays: 0, rows: [], criticalTaskIds: [] })
   expect(JSON.stringify({ tasks, edges })).toBe(before)
 })
+
+
+it('canonicalizes Gantt non-working dates with sorted unique ISO days and rejects invalid dates', () => {
+  const normalize = (ganttModule as unknown as {
+    normalizeTaskGanttNonWorkingDates: (dates: readonly string[]) => string[]
+  }).normalizeTaskGanttNonWorkingDates
+  expect(typeof normalize).toBe('function')
+  const dates = ['2026-10-23', '2026-10-22', '2026-10-23', '2026-10-17']
+  const snapshot = [...dates]
+  expect(normalize(dates)).toEqual(['2026-10-17', '2026-10-22', '2026-10-23'])
+  expect(normalize([])).toEqual([])
+  expect(() => normalize(['2026-02-30'])).toThrow('Invalid Gantt non-working date')
+  expect(() => normalize(['not-a-date'])).toThrow('Invalid Gantt non-working date')
+  expect(dates).toEqual(snapshot)
+})

@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { act, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
@@ -188,5 +188,81 @@ it('shows a separate working-day Gantt analysis without altering calendar-day me
   await user.click(toggle)
   expect(screen.queryByLabelText('Gantt working-day critical path for Demo')).toBeNull()
   expect(screen.getByText(/Logical critical path: 7 days/)).toBeTruthy()
+  expect(JSON.stringify(store.getState())).toBe(before)
+})
+
+
+async function addGanttNonWorkingDate(user: ReturnType<typeof userEvent.setup>, date: string) {
+  fireEvent.change(screen.getByLabelText('Gantt non-working date'), { target: { value: date } })
+  await user.click(screen.getByRole('button', { name: 'Add Gantt non-working date' }))
+}
+
+it('adds a working-calendar exception from Gantt without mutating Workspace data', async () => {
+  const { user, store } = renderCriticalGanttWorkspace()
+  const before = JSON.stringify(store.getState())
+  await user.click(screen.getByRole('button', { name: 'Show Gantt working-day analysis' }))
+  const summary = screen.getByLabelText('Gantt working-day critical path for Demo')
+  expect(summary.textContent).toContain('5 working days')
+  expect(screen.getByRole('button', { name: 'Add Gantt non-working date' })).toBeTruthy()
+  await addGanttNonWorkingDate(user, '2026-10-22')
+  expect(summary.textContent).toContain('4 working days')
+  expect(summary.textContent).toContain('1 excluded date')
+  expect((screen.getByLabelText('Gantt non-working date') as HTMLInputElement).value).toBe('')
+  expect(JSON.stringify(store.getState())).toBe(before)
+})
+
+
+it('removes only the chosen Gantt non-working date and restores the derived working duration', async () => {
+  const { user, store } = renderCriticalGanttWorkspace()
+  const before = JSON.stringify(store.getState())
+  await user.click(screen.getByRole('button', { name: 'Show Gantt working-day analysis' }))
+  await addGanttNonWorkingDate(user, '2026-10-22')
+  const summary = screen.getByLabelText('Gantt working-day critical path for Demo')
+  expect(summary.textContent).toContain('4 working days')
+  await user.click(screen.getByRole('button', { name: 'Remove Gantt non-working date 2026-10-22' }))
+  expect(summary.textContent).toContain('5 working days')
+  expect(summary.textContent).toContain('holidays not configured')
+  expect(screen.queryByRole('button', { name: 'Remove Gantt non-working date 2026-10-22' })).toBeNull()
+  expect(JSON.stringify(store.getState())).toBe(before)
+})
+
+
+it('filters by working-day rather than calendar-day criticality and keeps overview edges in sync', async () => {
+  const { user, store } = renderCriticalGanttWorkspace()
+  const before = JSON.stringify(store.getState())
+  await user.click(screen.getByRole('button', { name: 'Show Gantt working-day analysis' }))
+  await addGanttNonWorkingDate(user, '2026-10-22')
+  await addGanttNonWorkingDate(user, '2026-10-23')
+  const overview = () => screen.getByRole('list', { name: 'Task Gantt for Demo' })
+  const dependencies = () => screen.getByRole('list', { name: 'Gantt dependencies for Demo' })
+  const calendarToggle = screen.getByRole('button', { name: 'Critical tasks only in Gantt overview' })
+  await user.click(calendarToggle)
+  expect(within(overview()).getAllByRole('listitem')).toHaveLength(2)
+  const workingToggle = screen.getByRole('button', { name: 'Working-day critical tasks only in Gantt overview' })
+  await user.click(workingToggle)
+  expect(calendarToggle.getAttribute('aria-pressed')).toBe('false')
+  expect(workingToggle.getAttribute('aria-pressed')).toBe('true')
+  expect(within(overview()).getAllByRole('listitem')).toHaveLength(3)
+  expect(within(overview()).getByText('Side task')).toBeTruthy()
+  expect(within(overview()).queryByText('Unscheduled')).toBeNull()
+  expect(within(dependencies()).getAllByRole('listitem')).toHaveLength(2)
+  await user.click(workingToggle)
+  expect(within(overview()).getAllByRole('listitem')).toHaveLength(4)
+  expect(JSON.stringify(store.getState())).toBe(before)
+})
+
+
+it('bulk-selects only visible working-day critical Tasks using configured exceptions', async () => {
+  const { user, store } = renderCriticalGanttWorkspace()
+  const before = JSON.stringify(store.getState())
+  await user.click(screen.getByRole('button', { name: 'Show Gantt working-day analysis' }))
+  await addGanttNonWorkingDate(user, '2026-10-22')
+  await addGanttNonWorkingDate(user, '2026-10-23')
+  await user.click(screen.getByRole('button', { name: 'Select visible working-day critical Gantt tasks' }))
+  expect(screen.getByText('3 tasks selected')).toBeTruthy()
+  for (const title of ['Alpha', 'Beta', 'Side task']) {
+    expect((screen.getByRole('checkbox', { name: `Select task ${title}` }) as HTMLInputElement).checked).toBe(true)
+  }
+  expect((screen.getByRole('checkbox', { name: 'Select task Unscheduled' }) as HTMLInputElement).checked).toBe(false)
   expect(JSON.stringify(store.getState())).toBe(before)
 })

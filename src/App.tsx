@@ -8,6 +8,7 @@ import {
   createTaskGanttBaselineComparison,
   createTaskGanttCriticalPath,
   createTaskGanttScheduleConflicts,
+  normalizeTaskGanttNonWorkingDates,
   createTaskGanttWorkingCriticalPath,
 } from './domain/task-gantt'
 import { createTaskTableRows } from './domain/task-table'
@@ -326,6 +327,9 @@ export function App({
   const [ganttOverviewCriticalOnly, setGanttOverviewCriticalOnly] = useState(false)
   const [ganttShowLogicalOffsets, setGanttShowLogicalOffsets] = useState(false)
   const [ganttShowWorkingDays, setGanttShowWorkingDays] = useState(false)
+  const [ganttOverviewWorkingCriticalOnly, setGanttOverviewWorkingCriticalOnly] = useState(false)
+  const [ganttNonWorkingDateDraft, setGanttNonWorkingDateDraft] = useState('')
+  const [ganttNonWorkingDates, setGanttNonWorkingDates] = useState<string[]>([])
   const [customFieldFilterFieldId, setCustomFieldFilterFieldId] = useState(
     initialViewPreferences.customFieldFilter?.fieldId ?? '',
   )
@@ -725,6 +729,23 @@ export function App({
           (task) => task.projectId === project.id && visibleTaskIdSet.has(task.id),
         ),
         relationships,
+      ).criticalTaskIds,
+    )
+    if (criticalTaskIds.length === 0) return
+    setBulkSelectionMode(true)
+    setSelectedTaskIds(criticalTaskIds)
+    setBulkDeletePending(false)
+  }
+
+
+  function selectVisibleWorkingCriticalGanttTasks() {
+    const criticalTaskIds = visibleProjects.flatMap((project) =>
+      createTaskGanttWorkingCriticalPath(
+        activeTasks.filter(
+          (task) => task.projectId === project.id && visibleTaskIdSet.has(task.id),
+        ),
+        relationships,
+        ganttNonWorkingDates,
       ).criticalTaskIds,
     )
     if (criticalTaskIds.length === 0) return
@@ -2478,7 +2499,10 @@ export function App({
         <button
           type="button"
           aria-pressed={ganttOverviewCriticalOnly}
-          onClick={() => setGanttOverviewCriticalOnly((current) => !current)}
+          onClick={() => {
+            setGanttOverviewCriticalOnly((current) => !current)
+            setGanttOverviewWorkingCriticalOnly(false)
+          }}
         >
           Critical tasks only in Gantt overview
         </button>
@@ -2494,8 +2518,61 @@ export function App({
       ) : null}
       {taskViewMode === 'gantt' && activeProjects.length > 0 ? (
         <button type="button" aria-pressed={ganttShowWorkingDays}
-          onClick={() => setGanttShowWorkingDays((current) => !current)}>
+          onClick={() => {
+            setGanttShowWorkingDays((current) => !current)
+            setGanttOverviewWorkingCriticalOnly(false)
+          }}>
           Show Gantt working-day analysis
+        </button>
+      ) : null}
+      {taskViewMode === 'gantt' && activeProjects.length > 0 && ganttShowWorkingDays ? (
+        <div>
+          <label>
+            Gantt non-working date
+            <input type="date" value={ganttNonWorkingDateDraft}
+              onChange={(event) => setGanttNonWorkingDateDraft(event.target.value)} />
+          </label>
+          <button type="button"
+            disabled={!ganttNonWorkingDateDraft || ganttNonWorkingDates.includes(ganttNonWorkingDateDraft)}
+            onClick={() => {
+              try {
+                setGanttNonWorkingDates((current) =>
+                  normalizeTaskGanttNonWorkingDates([...current, ganttNonWorkingDateDraft]))
+                setGanttNonWorkingDateDraft('')
+                setError(null)
+              } catch (caught) {
+                setError(errorMessage(caught))
+              }
+            }}>
+            Add Gantt non-working date
+          </button>
+          {ganttNonWorkingDates.length > 0 ? (
+            <ul aria-label="Gantt non-working dates">
+              {ganttNonWorkingDates.map((date) => (
+                <li key={date}>
+                  {date}
+                  <button type="button" onClick={() => setGanttNonWorkingDates(
+                    (current) => current.filter((candidate) => candidate !== date))}>
+                    Remove Gantt non-working date {date}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+      {taskViewMode === 'gantt' && activeProjects.length > 0 && ganttShowWorkingDays ? (
+        <button type="button" aria-pressed={ganttOverviewWorkingCriticalOnly}
+          onClick={() => {
+            setGanttOverviewWorkingCriticalOnly((current) => !current)
+            setGanttOverviewCriticalOnly(false)
+          }}>
+          Working-day critical tasks only in Gantt overview
+        </button>
+      ) : null}
+      {taskViewMode === 'gantt' && activeProjects.length > 0 && ganttShowWorkingDays ? (
+        <button type="button" onClick={selectVisibleWorkingCriticalGanttTasks}>
+          Select visible working-day critical Gantt tasks
         </button>
       ) : null}
       {taskViewMode === 'gantt' && activeProjects.length > 0 ? (
@@ -2547,16 +2624,18 @@ export function App({
             (ganttCriticalPath?.rows ?? []).map((row) => [row.taskId, row] as const),
           )
           const ganttWorkingPath = taskViewMode === 'gantt' && ganttShowWorkingDays
-            ? createTaskGanttWorkingCriticalPath(tasks, relationships)
+            ? createTaskGanttWorkingCriticalPath(tasks, relationships, ganttNonWorkingDates)
             : null
           const ganttWorkingRows = new Map(
             (ganttWorkingPath?.rows ?? []).map((row) => [row.taskId, row] as const),
           )
-          const ganttOverviewItems = ganttOverviewCriticalOnly
-            ? ganttItems.filter((item) => ganttCriticalRows.get(item.task.id)?.isCritical)
-            : ganttItems
+          const ganttOverviewItems = ganttOverviewWorkingCriticalOnly
+            ? ganttItems.filter((item) => ganttWorkingRows.get(item.task.id)?.isCritical)
+            : ganttOverviewCriticalOnly
+              ? ganttItems.filter((item) => ganttCriticalRows.get(item.task.id)?.isCritical)
+              : ganttItems
           const ganttOverviewIds = new Set(ganttOverviewItems.map((item) => item.task.id))
-          const ganttOverviewEdges = ganttOverviewCriticalOnly
+          const ganttOverviewEdges = ganttOverviewCriticalOnly || ganttOverviewWorkingCriticalOnly
             ? ganttDependencyEdges.filter(
                 (edge) => ganttOverviewIds.has(edge.sourceTaskId) && ganttOverviewIds.has(edge.targetTaskId),
               )
@@ -2999,7 +3078,7 @@ export function App({
                     <p aria-label={`Gantt working-day critical path for ${project.name}`}>
                       {ganttWorkingPath.rows.length === 0
                         ? 'No scheduled tasks for working-day analysis'
-                        : `Working-day critical path: ${ganttWorkingPath.durationDays} working days (Monday-Friday; holidays not configured)`}
+                        : `Working-day critical path: ${ganttWorkingPath.durationDays} working days (Monday-Friday; ${ganttNonWorkingDates.length === 0 ? 'holidays not configured' : `${ganttNonWorkingDates.length} excluded date${ganttNonWorkingDates.length === 1 ? '' : 's'}`})`}
                     </p>
                   ) : null}
                   {taskViewMode === 'gantt' ? (

@@ -605,3 +605,14 @@ Critical-path analysis is derived and not persisted. A milestone is a zero-day e
 - [x] Optional separate Gantt working-day analysis and per-Task labels (421)
 
 Working-day calculations are derived and not persisted. The optional view uses Monday–Friday without configured holidays; callers of the domain projection may supply validated excluded dates. Existing calendar-day analysis, schedule records, selection and conflict diagnostics are unchanged. This is logical dependency analysis, not a resource-leveling engine or actual start/finish-date forecast.
+
+
+## Gantt holiday controls — TDD 422–426
+
+- [x] Validate, sort and deduplicate ISO `YYYY-MM-DD` non-working dates without mutation (422)
+- [x] Add an excluded Gantt date in the browser without modifying stored Tasks (423)
+- [x] Remove an excluded date and recompute the working-day critical path (424)
+- [x] Switch between calendar-day and working-day critical-only overviews with matching dependencies (425)
+- [x] Select visible working-day critical Tasks using the existing bulk-selection controls (426)
+
+Holiday exceptions are session-only and apply to Gantt working-day analysis across visible Projects; they are not yet persisted or shared. The calendar-day projection remains unchanged. Working-day calculations represent logical dependency durations and do not reschedule Tasks or allocate resources.

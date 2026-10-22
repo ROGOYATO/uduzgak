@@ -294,14 +294,7 @@ export function countTaskGanttWorkingDays(
   task: Task,
   nonWorkingDates: readonly string[] = [],
 ): number | null {
-  const exceptions = new Set(nonWorkingDates)
-  for (const day of exceptions) {
-    const parsed = Date.parse(`${day}T00:00:00.000Z`)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !Number.isFinite(parsed) ||
-      new Date(parsed).toISOString().slice(0, 10) !== day) {
-      throw new Error('Invalid Gantt non-working date')
-    }
-  }
+  const exceptions = new Set(normalizeTaskGanttNonWorkingDates(nonWorkingDates))
   if (task.startDate === undefined || task.dueDate === undefined) return null
   if (task.isMilestone === true) return 0
   const start = Date.parse(`${task.startDate}T00:00:00.000Z`)
@@ -373,4 +366,19 @@ export function createTaskGanttWorkingCriticalPath(
     }
   })
   return { durationDays, rows, criticalTaskIds: rows.filter((row) => row.isCritical).map((row) => row.taskId) }
+}
+
+
+/** Normalize user-provided non-working dates without modifying their input order. */
+export function normalizeTaskGanttNonWorkingDates(dates: readonly string[]): string[] {
+  const unique = new Set<string>()
+  for (const day of dates) {
+    const parsed = Date.parse(`${day}T00:00:00.000Z`)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !Number.isFinite(parsed) ||
+      new Date(parsed).toISOString().slice(0, 10) !== day) {
+      throw new Error('Invalid Gantt non-working date')
+    }
+    unique.add(day)
+  }
+  return [...unique].sort()
 }

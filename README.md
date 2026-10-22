@@ -745,3 +745,8 @@ The Gantt overview can hide noncritical rows without hiding Task detail controls
 ### TDD 417–421 — Gantt working-day analysis
 
 The existing calendar-day logical critical path is preserved. Gantt can optionally show a separate Monday–Friday working-day critical path and per-Task slack using the same visible scheduled Task dependency graph. Domain helpers support validated, unique excluded dates (for holidays), but the UI does not yet configure holiday exceptions. Both projections are logical dependency-duration metrics, not elapsed-date forecasts or resource scheduling. No workspace storage schema changed.
+
+
+### TDD 422–426 — Gantt holiday controls
+
+In Gantt, enable the separate working-day analysis to add or remove `YYYY-MM-DD` non-working dates. The Monday–Friday working-day critical-path summary updates without editing Workspace Tasks. Choose working-day critical-only overview to hide noncritical Gantt summary rows and unrelated dependency lines; calendar-day critical-only mode remains separate. Select visible working-day critical Tasks through existing bulk controls. Dates are per-session UI state, not persisted, and the calculations remain logical, not resource-allocated schedules.

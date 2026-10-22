@@ -3382,3 +3382,10 @@ Start boundary: `9287ee9c320dfe04be35467053011ab74d3e3f05` (`TDD 412–416: add 
 RED/GREEN cycles: 417 count inclusive UTC weekdays without changing calendar-day duration, 418 validate/deduplicate excluded dates, 419 substitute working-day durations into in-scope `blocks` graph, 420 calculate longest working-day path/slack, 421 show optional working-day UI alongside unchanged calendar-day summary. Test coverage is added only to the existing Gantt domain and browser-view test files. No new test files.
 
 Per-cycle gates: one RED focused test first, minimal GREEN patch, focused domain/UI tests, zero-warning lint, TypeScript/build. Final narrow Gantt regression smoke, exact-path/hash transfer audit, clean-tree/remote checks, non-force commit/push. Never run full Vitest automatically. Prepared until the user executes the Windows runner; do not claim a live checkpoint based on package creation alone.
+
+
+## TDD 422–426 — Gantt holiday controls
+
+Start boundary: `1cb953c0bb75bbbf3fcf8f4dca7685196251836e` (`chore(deps): pin patched Vitest 4.1.12 and remediate audit`), clean `main` at `ROGOYATO/uduzgak`.
+
+422 normalized validated ISO non-working dates with no caller mutation; 423 session-only browser addition feeding working-day analysis; 424 removal and reactive recomputation; 425 separate calendar-day/working-day critical-only overviews with scoped dependency links; 426 bulk-select visible working-day critical Tasks. Exactly five RED/GREEN behavior tests were added to two existing focused Gantt test files, with per-cycle lint/build and focused final regression checks; no full Vitest. Runner gates changes on pinned HEAD/tree/blobs, clean index, exact files, remote unchanged, and non-force push. No Task or storage schema changes; non-working dates are not persisted. Actual live completion is determined by runner output, not by package preparation.
