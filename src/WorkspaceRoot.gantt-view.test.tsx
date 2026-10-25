@@ -266,3 +266,23 @@ it('bulk-selects only visible working-day critical Tasks using configured except
   expect((screen.getByRole('checkbox', { name: 'Select task Unscheduled' }) as HTMLInputElement).checked).toBe(false)
   expect(JSON.stringify(store.getState())).toBe(before)
 })
+
+
+it('switches Gantt to a Sunday-Thursday workweek without mutating saved Tasks', async () => {
+  const { user, store } = renderCriticalGanttWorkspace()
+  const before = JSON.stringify(store.getState())
+  await user.click(screen.getByRole('button', { name: 'Show Gantt working-day analysis' }))
+  const summary = screen.getByLabelText('Gantt working-day critical path for Demo')
+  expect(summary.textContent).toContain('5 working days')
+  const toggle = screen.getByRole('button', { name: 'Use Sunday-Thursday Gantt workweek' })
+  expect(toggle.getAttribute('aria-pressed')).toBe('false')
+  await user.click(toggle)
+  expect(toggle.getAttribute('aria-pressed')).toBe('true')
+  expect(summary.textContent).toContain('4 working days')
+  expect(summary.textContent).toContain('Sunday-Thursday')
+  expect(screen.getByLabelText('Gantt critical path for Demo').textContent).toContain('5 days')
+  await user.click(toggle)
+  expect(summary.textContent).toContain('5 working days')
+  expect(summary.textContent).toContain('Monday-Friday')
+  expect(JSON.stringify(store.getState())).toBe(before)
+})

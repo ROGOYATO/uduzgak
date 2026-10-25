@@ -750,3 +750,6 @@ The existing calendar-day logical critical path is preserved. Gantt can optional
 ### TDD 422–426 — Gantt holiday controls
 
 In Gantt, enable the separate working-day analysis to add or remove `YYYY-MM-DD` non-working dates. The Monday–Friday working-day critical-path summary updates without editing Workspace Tasks. Choose working-day critical-only overview to hide noncritical Gantt summary rows and unrelated dependency lines; calendar-day critical-only mode remains separate. Select visible working-day critical Tasks through existing bulk controls. Dates are per-session UI state, not persisted, and the calculations remain logical, not resource-allocated schedules.
+
+
+Gantt work calendars (TDD 427–431): Working-day critical-path analysis supports a custom set of UTC weekdays (Sunday=0, Saturday=6), alongside non-working date exceptions. In the Gantt view, users can switch between Monday–Friday (default) and Sunday–Thursday workweeks. These controls are session-only and never rewrite saved Task schedules. Calendar-day critical-path analysis remains independent.

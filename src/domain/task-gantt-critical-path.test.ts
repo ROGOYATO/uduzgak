@@ -199,3 +199,70 @@ it('canonicalizes Gantt non-working dates with sorted unique ISO days and reject
   expect(() => normalize(['not-a-date'])).toThrow('Invalid Gantt non-working date')
   expect(dates).toEqual(snapshot)
 })
+
+
+it('validates and canonicalizes Gantt working weekdays without mutating the supplied days', () => {
+  const normalize = (ganttModule as unknown as {
+    normalizeTaskGanttWorkingWeekdays?: (days: readonly number[]) => number[]
+  }).normalizeTaskGanttWorkingWeekdays
+  expect(typeof normalize).toBe('function')
+  const weekdays = [4, 0, 2, 2, 1, 3]
+  const snapshot = [...weekdays]
+  expect(normalize!(weekdays)).toEqual([0, 1, 2, 3, 4])
+  expect(weekdays).toEqual(snapshot)
+  expect(() => normalize!([])).toThrow('Invalid Gantt working weekdays')
+  expect(() => normalize!([1, 7])).toThrow('Invalid Gantt working weekdays')
+  expect(() => normalize!([1, 1.5])).toThrow('Invalid Gantt working weekdays')
+})
+
+
+it('counts a Sunday workday and respects excluded Sundays in a custom Gantt week', () => {
+  const count = (ganttModule as unknown as {
+    countTaskGanttWorkingDays: (candidate: Task, holidays?: readonly string[], weekdays?: readonly number[]) => number | null
+  }).countTaskGanttWorkingDays
+  const sunday = task('sun', '2026-10-18', '2026-10-18')
+  const week = [0, 1, 2, 3, 4]
+  const before = JSON.stringify({ sunday, week })
+  expect(count(sunday)).toBe(0)
+  expect(count(sunday, [], week)).toBe(1)
+  expect(count(sunday, ['2026-10-18'], week)).toBe(0)
+  expect(count(task('milestone', '2026-10-18', '2026-10-18', true), [], week)).toBe(0)
+  expect(count(task('unplanned'), [], week)).toBeNull()
+  expect(JSON.stringify({ sunday, week })).toBe(before)
+})
+
+
+it('projects configured weekdays into the blocking working-day Gantt graph', () => {
+  const graph = ganttModule.createTaskGanttWorkingGraph
+  const friday = task('fri', '2026-10-16', '2026-10-16')
+  const sunday = task('sun', '2026-10-18', '2026-10-18')
+  const tasks = [friday, sunday]
+  const relationships = [blocks('edge', 'fri', 'sun')]
+  const snapshot = JSON.stringify({ tasks, relationships })
+  expect(graph(tasks, relationships, [], [0, 1, 2, 3, 4])).toEqual({
+    nodes: [
+      { taskId: 'fri', durationDays: 0, isMilestone: false },
+      { taskId: 'sun', durationDays: 1, isMilestone: false },
+    ],
+    edges: [{ sourceTaskId: 'fri', targetTaskId: 'sun' }],
+  })
+  expect(JSON.stringify({ tasks, relationships })).toBe(snapshot)
+})
+
+
+it('recomputes critical path when Sunday replaces Friday in a Gantt workweek', () => {
+  const friday = task('fri', '2026-10-16', '2026-10-16')
+  const sunday = task('sun', '2026-10-18', '2026-10-18')
+  const tasks = [friday, sunday]
+  const original = ganttModule.createTaskGanttWorkingCriticalPath(tasks, [])
+  expect(original.durationDays).toBe(1)
+  expect(original.criticalTaskIds).toEqual(['fri'])
+  const revised = ganttModule.createTaskGanttWorkingCriticalPath(tasks, [], [], [0, 1, 2, 3, 4])
+  expect(revised.durationDays).toBe(1)
+  expect(revised.criticalTaskIds).toEqual(['sun'])
+  expect(revised.rows.map(({ taskId, slackDays }) => ({ taskId, slackDays }))).toEqual([
+    { taskId: 'fri', slackDays: 1 },
+    { taskId: 'sun', slackDays: 0 },
+  ])
+  expect(tasks).toEqual([friday, sunday])
+})

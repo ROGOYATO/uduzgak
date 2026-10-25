@@ -327,6 +327,8 @@ export function App({
   const [ganttOverviewCriticalOnly, setGanttOverviewCriticalOnly] = useState(false)
   const [ganttShowLogicalOffsets, setGanttShowLogicalOffsets] = useState(false)
   const [ganttShowWorkingDays, setGanttShowWorkingDays] = useState(false)
+  const [ganttSundayThursdayWeek, setGanttSundayThursdayWeek] = useState(false)
+  const ganttWorkingWeekdays = ganttSundayThursdayWeek ? [0, 1, 2, 3, 4] : [1, 2, 3, 4, 5]
   const [ganttOverviewWorkingCriticalOnly, setGanttOverviewWorkingCriticalOnly] = useState(false)
   const [ganttNonWorkingDateDraft, setGanttNonWorkingDateDraft] = useState('')
   const [ganttNonWorkingDates, setGanttNonWorkingDates] = useState<string[]>([])
@@ -746,6 +748,7 @@ export function App({
         ),
         relationships,
         ganttNonWorkingDates,
+        ganttWorkingWeekdays,
       ).criticalTaskIds,
     )
     if (criticalTaskIds.length === 0) return
@@ -2526,6 +2529,12 @@ export function App({
         </button>
       ) : null}
       {taskViewMode === 'gantt' && activeProjects.length > 0 && ganttShowWorkingDays ? (
+        <button type="button" aria-pressed={ganttSundayThursdayWeek}
+          onClick={() => setGanttSundayThursdayWeek((current) => !current)}>
+          Use Sunday-Thursday Gantt workweek
+        </button>
+      ) : null}
+      {taskViewMode === 'gantt' && activeProjects.length > 0 && ganttShowWorkingDays ? (
         <div>
           <label>
             Gantt non-working date
@@ -2624,7 +2633,7 @@ export function App({
             (ganttCriticalPath?.rows ?? []).map((row) => [row.taskId, row] as const),
           )
           const ganttWorkingPath = taskViewMode === 'gantt' && ganttShowWorkingDays
-            ? createTaskGanttWorkingCriticalPath(tasks, relationships, ganttNonWorkingDates)
+            ? createTaskGanttWorkingCriticalPath(tasks, relationships, ganttNonWorkingDates, ganttWorkingWeekdays)
             : null
           const ganttWorkingRows = new Map(
             (ganttWorkingPath?.rows ?? []).map((row) => [row.taskId, row] as const),
@@ -3078,7 +3087,7 @@ export function App({
                     <p aria-label={`Gantt working-day critical path for ${project.name}`}>
                       {ganttWorkingPath.rows.length === 0
                         ? 'No scheduled tasks for working-day analysis'
-                        : `Working-day critical path: ${ganttWorkingPath.durationDays} working days (Monday-Friday; ${ganttNonWorkingDates.length === 0 ? 'holidays not configured' : `${ganttNonWorkingDates.length} excluded date${ganttNonWorkingDates.length === 1 ? '' : 's'}`})`}
+                        : `Working-day critical path: ${ganttWorkingPath.durationDays} working days (${ganttSundayThursdayWeek ? 'Sunday-Thursday' : 'Monday-Friday'}; ${ganttNonWorkingDates.length === 0 ? 'holidays not configured' : `${ganttNonWorkingDates.length} excluded date${ganttNonWorkingDates.length === 1 ? '' : 's'}`})`}
                     </p>
                   ) : null}
                   {taskViewMode === 'gantt' ? (

@@ -616,3 +616,14 @@ Working-day calculations are derived and not persisted. The optional view uses M
 - [x] Select visible working-day critical Tasks using the existing bulk-selection controls (426)
 
 Holiday exceptions are session-only and apply to Gantt working-day analysis across visible Projects; they are not yet persisted or shared. The calendar-day projection remains unchanged. Working-day calculations represent logical dependency durations and do not reschedule Tasks or allocate resources.
+
+
+## Gantt configurable workweek — TDD 427–431
+
+- [x] Validate and normalize custom UTC workweek days (Sunday=0 through Saturday=6) without mutating input (427).
+- [x] Count Task working durations using custom weekdays plus excluded dates, retaining default Monday–Friday (428).
+- [x] Project the custom workweek through the scheduled blocking graph (429).
+- [x] Recompute working-day critical path/slack under a selected workweek (430).
+- [x] Toggle Sunday–Thursday workweek in Gantt while keeping calendar-day analysis and saved Tasks unchanged (431).
+
+Workweek selection is session-only and global to the visible Gantt analysis. Neither excluded dates nor workweek presets persist to Workspace storage. The analysis is still logical and does not model resource availability or actual scheduled date forecasts.

@@ -293,8 +293,10 @@ export function createTaskGanttScheduleConflicts(
 export function countTaskGanttWorkingDays(
   task: Task,
   nonWorkingDates: readonly string[] = [],
+  workingWeekdays: readonly number[] = [1, 2, 3, 4, 5],
 ): number | null {
   const exceptions = new Set(normalizeTaskGanttNonWorkingDates(nonWorkingDates))
+  const workingDays = new Set(normalizeTaskGanttWorkingWeekdays(workingWeekdays))
   if (task.startDate === undefined || task.dueDate === undefined) return null
   if (task.isMilestone === true) return 0
   const start = Date.parse(`${task.startDate}T00:00:00.000Z`)
@@ -306,7 +308,7 @@ export function countTaskGanttWorkingDays(
   for (let instant = start; instant <= end; instant += 86_400_000) {
     const date = new Date(instant)
     const weekday = date.getUTCDay()
-    if (weekday !== 0 && weekday !== 6 &&
+    if (workingDays.has(weekday) &&
       !exceptions.has(date.toISOString().slice(0, 10))) days++
   }
   return days
@@ -317,6 +319,7 @@ export function createTaskGanttWorkingGraph(
   tasks: readonly Task[],
   relationships: readonly TaskRelationship[],
   nonWorkingDates: readonly string[] = [],
+  workingWeekdays: readonly number[] = [1, 2, 3, 4, 5],
 ): TaskGanttCriticalGraph {
   const projected = createTaskGanttCriticalGraph(tasks, relationships)
   const byId = new Map(tasks.map((task) => [task.id, task] as const))
@@ -324,7 +327,7 @@ export function createTaskGanttWorkingGraph(
     edges: projected.edges,
     nodes: projected.nodes.map((node) => ({
       ...node,
-      durationDays: countTaskGanttWorkingDays(byId.get(node.taskId)!, nonWorkingDates)!,
+      durationDays: countTaskGanttWorkingDays(byId.get(node.taskId)!, nonWorkingDates, workingWeekdays)!,
     })),
   }
 }
@@ -334,8 +337,9 @@ export function createTaskGanttWorkingCriticalPath(
   tasks: readonly Task[],
   relationships: readonly TaskRelationship[],
   nonWorkingDates: readonly string[] = [],
+  workingWeekdays: readonly number[] = [1, 2, 3, 4, 5],
 ): TaskGanttCriticalPath {
-  const graph = createTaskGanttWorkingGraph(tasks, relationships, nonWorkingDates)
+  const graph = createTaskGanttWorkingGraph(tasks, relationships, nonWorkingDates, workingWeekdays)
   const order = createTaskGanttCriticalOrder(tasks, relationships)
   const durations = new Map(graph.nodes.map((node) => [node.taskId, node.durationDays]))
   const offsets = new Map<string, TaskGanttEarliestOffset>()
@@ -381,4 +385,13 @@ export function normalizeTaskGanttNonWorkingDates(dates: readonly string[]): str
     unique.add(day)
   }
   return [...unique].sort()
+}
+
+
+/** UTC weekday numbers: Sunday=0 through Saturday=6. At least one working day is required. */
+export function normalizeTaskGanttWorkingWeekdays(weekdays: readonly number[]): number[] {
+  if (weekdays.length === 0 || weekdays.some((day) => !Number.isInteger(day) || day < 0 || day > 6)) {
+    throw new Error('Invalid Gantt working weekdays')
+  }
+  return [...new Set(weekdays)].sort((a, b) => a - b)
 }
