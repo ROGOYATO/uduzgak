@@ -327,11 +327,15 @@ export function App({
   const [ganttOverviewCriticalOnly, setGanttOverviewCriticalOnly] = useState(false)
   const [ganttShowLogicalOffsets, setGanttShowLogicalOffsets] = useState(false)
   const [ganttShowWorkingDays, setGanttShowWorkingDays] = useState(false)
-  const [ganttSundayThursdayWeek, setGanttSundayThursdayWeek] = useState(false)
+  const [ganttSundayThursdayWeek, setGanttSundayThursdayWeek] = useState(
+    initialViewPreferences.ganttWorkingWeek === 'sun-thu',
+  )
   const ganttWorkingWeekdays = ganttSundayThursdayWeek ? [0, 1, 2, 3, 4] : [1, 2, 3, 4, 5]
   const [ganttOverviewWorkingCriticalOnly, setGanttOverviewWorkingCriticalOnly] = useState(false)
   const [ganttNonWorkingDateDraft, setGanttNonWorkingDateDraft] = useState('')
-  const [ganttNonWorkingDates, setGanttNonWorkingDates] = useState<string[]>([])
+  const [ganttNonWorkingDates, setGanttNonWorkingDates] = useState<string[]>(
+    () => [...(initialViewPreferences.ganttNonWorkingDates ?? [])],
+  )
   const [customFieldFilterFieldId, setCustomFieldFilterFieldId] = useState(
     initialViewPreferences.customFieldFilter?.fieldId ?? '',
   )
@@ -2530,7 +2534,11 @@ export function App({
       ) : null}
       {taskViewMode === 'gantt' && activeProjects.length > 0 && ganttShowWorkingDays ? (
         <button type="button" aria-pressed={ganttSundayThursdayWeek}
-          onClick={() => setGanttSundayThursdayWeek((current) => !current)}>
+          onClick={() => {
+            const next = !ganttSundayThursdayWeek
+            setGanttSundayThursdayWeek(next)
+            updatePreferences({ ganttWorkingWeek: next ? 'sun-thu' : 'mon-fri' })
+          }}>
           Use Sunday-Thursday Gantt workweek
         </button>
       ) : null}
@@ -2545,8 +2553,9 @@ export function App({
             disabled={!ganttNonWorkingDateDraft || ganttNonWorkingDates.includes(ganttNonWorkingDateDraft)}
             onClick={() => {
               try {
-                setGanttNonWorkingDates((current) =>
-                  normalizeTaskGanttNonWorkingDates([...current, ganttNonWorkingDateDraft]))
+                const next = normalizeTaskGanttNonWorkingDates([...ganttNonWorkingDates, ganttNonWorkingDateDraft])
+                setGanttNonWorkingDates(next)
+                updatePreferences({ ganttNonWorkingDates: next })
                 setGanttNonWorkingDateDraft('')
                 setError(null)
               } catch (caught) {
@@ -2560,8 +2569,11 @@ export function App({
               {ganttNonWorkingDates.map((date) => (
                 <li key={date}>
                   {date}
-                  <button type="button" onClick={() => setGanttNonWorkingDates(
-                    (current) => current.filter((candidate) => candidate !== date))}>
+                  <button type="button" onClick={() => {
+                    const next = ganttNonWorkingDates.filter((candidate) => candidate !== date)
+                    setGanttNonWorkingDates(next)
+                    updatePreferences({ ganttNonWorkingDates: next })
+                  }}>
                     Remove Gantt non-working date {date}
                   </button>
                 </li>

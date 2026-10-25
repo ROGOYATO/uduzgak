@@ -286,3 +286,31 @@ it('switches Gantt to a Sunday-Thursday workweek without mutating saved Tasks', 
   expect(summary.textContent).toContain('Monday-Friday')
   expect(JSON.stringify(store.getState())).toBe(before)
 })
+
+
+it('loads saved Gantt workweek and holiday exceptions into the initial working-day analysis', async () => {
+  const user = userEvent.setup()
+  const store = createWorkspaceStore(new MemoryStore())
+  const ids = ['saved-p', 'saved-t']
+  const commands = createWorkspaceCommands(store, {
+    nextId: () => ids.shift() ?? 'unexpected-id',
+    now: () => '2026-10-17T01:00:00.000Z',
+  })
+  const project = commands.addProject('Saved calendar')
+  const task = commands.addTask(project.id, 'Across weekend')
+  commands.changeTaskStartDate(task.id, '2026-10-18')
+  commands.changeTaskDueDate(task.id, '2026-10-19')
+  const before = JSON.stringify(store.getState())
+  render(<WorkspaceRoot store={store} commands={commands} initialViewPreferences={{
+    ...createDefaultViewPreferences(), projectView: project.id, viewMode: 'gantt',
+    ganttWorkingWeek: 'sun-thu', ganttNonWorkingDates: ['2026-10-19'],
+  }} />)
+  await user.click(screen.getByRole('button', { name: 'Show Gantt working-day analysis' }))
+  const summary = screen.getByLabelText('Gantt working-day critical path for Saved calendar')
+  expect(summary.textContent).toContain('1 working days')
+  expect(summary.textContent).toContain('Sunday-Thursday')
+  expect(summary.textContent).toContain('1 excluded date')
+  expect(screen.getByRole('button', { name: 'Use Sunday-Thursday Gantt workweek' }).getAttribute('aria-pressed')).toBe('true')
+  expect(screen.getByRole('button', { name: 'Remove Gantt non-working date 2026-10-19' })).toBeTruthy()
+  expect(JSON.stringify(store.getState())).toBe(before)
+})

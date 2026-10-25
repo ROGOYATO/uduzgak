@@ -1,4 +1,5 @@
 import { normalizeDateCustomFieldValue } from '../domain/custom-field'
+import { normalizeTaskGanttNonWorkingDates } from '../domain/task-gantt'
 import type { CustomFieldTaskFilter } from '../domain/task-filter'
 import {
   createDefaultViewPreferences,
@@ -245,6 +246,17 @@ function isValidSavedTaskViews(value: unknown): boolean {
   return true
 }
 
+function isValidGanttExcludedDates(value: unknown): boolean {
+  if (value === undefined) return true
+  if (!Array.isArray(value) || !value.every((day) => typeof day === 'string')) return false
+  try {
+    const normalized = normalizeTaskGanttNonWorkingDates(value)
+    return normalized.length === value.length && normalized.every((day, index) => day === value[index])
+  } catch {
+    return false
+  }
+}
+
 function isValidPreferences(value: unknown): value is ViewPreferences {
   return (
     isRecord(value) &&
@@ -269,6 +281,8 @@ function isValidPreferences(value: unknown): value is ViewPreferences {
       value.sort === 'manual') &&
     isValidOptionalCustomFieldFilter(value.customFieldFilter) &&
     isValidOptionalCustomFieldSortFieldId(value.customFieldSortFieldId) &&
+    (value.ganttWorkingWeek === undefined || value.ganttWorkingWeek === 'mon-fri' || value.ganttWorkingWeek === 'sun-thu') &&
+    isValidGanttExcludedDates(value.ganttNonWorkingDates) &&
     (value.viewMode === undefined || isTaskViewMode(value.viewMode)) &&
     (value.group === undefined ||
       value.group === 'none' ||

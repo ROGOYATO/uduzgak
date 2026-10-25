@@ -627,3 +627,14 @@ Holiday exceptions are session-only and apply to Gantt working-day analysis acro
 - [x] Toggle Sunday–Thursday workweek in Gantt while keeping calendar-day analysis and saved Tasks unchanged (431).
 
 Workweek selection is session-only and global to the visible Gantt analysis. Neither excluded dates nor workweek presets persist to Workspace storage. The analysis is still logical and does not model resource availability or actual scheduled date forecasts.
+
+
+## Persistent Gantt work calendar — TDD 432–436
+
+- [x] Store and validate the Monday–Friday or Sunday–Thursday Gantt workweek preset (432).
+- [x] Store validated, sorted, unique excluded calendar dates; malformed preferences are rejected (433).
+- [x] Restore the saved Gantt workweek and exclusions on initial render (434).
+- [x] Save workweek changes through the existing view-preference persistence boundary (435).
+- [x] Save added/removed Gantt non-working dates and restore them after reload (436).
+
+These settings live in view preferences, not Workspace Task data. Legacy view-preference documents without Gantt fields keep Monday–Friday and no exclusions. The logical critical-path implementation remains unchanged.

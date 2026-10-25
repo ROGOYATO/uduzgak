@@ -753,3 +753,6 @@ In Gantt, enable the separate working-day analysis to add or remove `YYYY-MM-DD`
 
 
 Gantt work calendars (TDD 427–431): Working-day critical-path analysis supports a custom set of UTC weekdays (Sunday=0, Saturday=6), alongside non-working date exceptions. In the Gantt view, users can switch between Monday–Friday (default) and Sunday–Thursday workweeks. These controls are session-only and never rewrite saved Task schedules. Calendar-day critical-path analysis remains independent.
+
+
+Gantt work-calendar preferences (TDD 432–436): The Monday–Friday / Sunday–Thursday selection and excluded-date list persist in the existing local view-preference document. Reloading restores both without modifying Task schedules, Workspace data, or calendar-day critical-path calculations. Invalid or noncanonical saved Gantt calendar values fall back to default view preferences.

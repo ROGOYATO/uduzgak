@@ -143,3 +143,30 @@ describe('view-mode persistence compatibility', () => {
     expect(loadViewPreferences(invalidStorage)).toEqual(createDefaultViewPreferences())
   })
 })
+
+
+it('persists only a valid optional Gantt workweek preset and rejects corrupted saved values', () => {
+  const storage = new MemoryStore()
+  const defaults = createDefaultViewPreferences()
+  saveViewPreferences(storage, { ...defaults, ganttWorkingWeek: 'sun-thu' })
+  expect(loadViewPreferences(storage)).toMatchObject({ ganttWorkingWeek: 'sun-thu' })
+  saveViewPreferences(storage, { ...defaults, ganttWorkingWeek: 'friday-only' } as ViewPreferences)
+  expect(loadViewPreferences(storage)).toEqual(defaults)
+  saveViewPreferences(storage, defaults)
+  expect(loadViewPreferences(storage)).toEqual(defaults)
+})
+
+
+it('round-trips canonical Gantt excluded dates and rejects malformed or duplicate dates', () => {
+  const storage = new MemoryStore()
+  const defaults = createDefaultViewPreferences()
+  const valid = { ...defaults, ganttNonWorkingDates: ['2026-10-19', '2026-10-22'] }
+  saveViewPreferences(storage, valid)
+  expect(loadViewPreferences(storage)).toEqual(valid)
+  for (const invalid of [['2026-10-19', '2026-10-19'], ['2026-02-30'], ['2026-10-22', '2026-10-19']]) {
+    saveViewPreferences(storage, { ...defaults, ganttNonWorkingDates: invalid })
+    expect(loadViewPreferences(storage)).toEqual(defaults)
+  }
+  saveViewPreferences(storage, { ...defaults, ganttNonWorkingDates: [] })
+  expect(loadViewPreferences(storage)).toEqual({ ...defaults, ganttNonWorkingDates: [] })
+})

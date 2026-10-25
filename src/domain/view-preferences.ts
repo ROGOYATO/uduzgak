@@ -35,6 +35,8 @@ export interface ViewPreferences {
   filterSortByView?: TaskViewFilterSortByView
   customFieldFilter?: CustomFieldTaskFilter
   customFieldSortFieldId?: string
+  ganttWorkingWeek?: 'mon-fri' | 'sun-thu'
+  ganttNonWorkingDates?: string[]
 }
 
 export function createDefaultViewPreferences(): ViewPreferences {
